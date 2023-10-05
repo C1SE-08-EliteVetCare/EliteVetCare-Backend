@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  EliteVetCare_db:
+    image: postgres:13
+    ports:
+      - 5435:5432
+    environment:
+      POSTGRES_USER: elitevetcare
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: EliteVetCare_db
+    networks:
+      - qq-network
+networks:
+  qq-network:
