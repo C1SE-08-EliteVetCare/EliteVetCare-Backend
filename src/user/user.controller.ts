@@ -1,11 +1,31 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { RoleGuard } from '../auth/guard/role.guard';
+import { AuthGuard } from '@nestjs/passport';
+import { GetUser } from './decorator/user.decorator';
+import { User } from '@prisma/client';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @UseGuards(new RoleGuard(['Pet Owner', 'Admin', 'Vet']))
+  @UseGuards(AuthGuard('jwt'))
+  @Get('me')
+  getCurrentUser(@GetUser() user: User) {
+    return user;
+  }
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
