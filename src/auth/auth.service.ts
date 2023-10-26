@@ -12,66 +12,63 @@ import {
   ResetDto,
   VerifyDto,
 } from './dto/auth.dto';
-import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import * as argon from 'argon2';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import * as crypto from 'crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { User } from '../entities';
+import { Repository } from 'typeorm';
+import { MailService } from '../config/mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
-    private jwt: JwtService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private mailService: MailService,
     private configService: ConfigService,
-    private mailerService: MailerService,
+    private jwt: JwtService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async register(registerDto: RegisterDto) {
-    try {
-      // generate the password hash
-      const hash = await argon.hash(registerDto.password);
-      // save the new user in the DB
-      const user = await this.prisma.user.create({
-        data: {
+    const existingUser = await this.userRepository.findOne({
+      where: { email: registerDto.email },
+    });
+    if (existingUser) {
+      throw new BadRequestException('Email has already registered');
+    }
+    // generate the password hash
+    const hash = await argon.hash(registerDto.password);
+
+    await this.userRepository
+      .createQueryBuilder()
+      .insert()
+      .into(User)
+      .values([
+        {
           email: registerDto.email,
           password: hash,
-          user_name: registerDto.username,
+          fullName: registerDto.fullName,
           phone: registerDto.phone,
-          operating_status: false,
-          role_id: 2,
         },
-      });
-      delete user.password;
+      ])
+      .execute();
 
-      // Verify email and save into cache
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      await this.cacheManager.set('verify_otp', otp, 300000);
+    // Verify email and save into cache
+    // const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 999999).toString();
+    await this.cacheManager.set('verify_otp', otp, 300000);
 
-      await this.mailerService.sendMail({
-        to: registerDto.email,
-        from: 'EliteVetCare" <noreply@elitevetcare.com>',
-        subject: 'Vui lòng xác nhận địa chỉ email của bạn - EliteVetCare',
-        template: './verifyEmail',
-        context: { otp: otp },
-      });
+    await this.mailService.sendEmailConfirmation(registerDto.email, otp);
 
-      const token = await this.generateJwtToken(user.id, user.email);
-      return {
-        ...token,
-      };
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new BadRequestException('This email already exist');
-        }
-      }
-      throw error;
-    }
+    return {
+      message: 'Register new account successfully',
+    };
   }
 
   async verifyEmail(verifyDto: VerifyDto) {
@@ -82,12 +79,13 @@ export class AuthService {
     if (otp !== verifyDto.otp) {
       throw new BadRequestException('Invalid OTP');
     }
-    await this.prisma.user.update({
-      where: {
-        email: verifyDto.email,
-      },
-      data: { operating_status: true },
-    });
+    await this.userRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({ operatingStatus: true })
+      .where('email = :email', { email: verifyDto.email })
+      .execute();
+
     await this.cacheManager.del('user_otp');
     return {
       message: 'Success verified',
@@ -95,8 +93,8 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: loginDto.email, operating_status: true },
+    const user = await this.userRepository.findOne({
+      where: { email: loginDto.email, operatingStatus: true },
     });
     if (!user) {
       throw new UnauthorizedException('User not found or not active');
@@ -124,24 +122,29 @@ export class AuthService {
     lastName: string,
     picture: string,
   ) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: email, operating_status: true },
+    const user = await this.userRepository.findOne({
+      where: { email: email, operatingStatus: true },
     });
+
     if (!user) {
-      const newUser = await this.prisma.user.create({
-        data: {
-          email: email,
-          user_name: '',
-          first_name: firstName,
-          last_name: lastName,
-          password: '',
-          avatar: picture,
-          phone: '',
-          operating_status: true,
-          role_id: 2,
-        },
-      });
-      const token = await this.generateJwtToken(newUser.id, newUser.email);
+      const newUser = await this.userRepository
+        .createQueryBuilder()
+        .insert()
+        .into(User)
+        .values([
+          {
+            email: email,
+            fullName: `${firstName} ${lastName}`,
+            password: '',
+            avatar: picture,
+            phone: '',
+          },
+        ])
+        .execute();
+      const token = await this.generateJwtToken(
+        newUser.raw[0].id,
+        newUser.raw[0].email,
+      );
       return {
         message: 'Create new user and signed in',
         ...token,
@@ -155,23 +158,19 @@ export class AuthService {
   }
 
   async forgotPassword(forgotDto: ForgotDto) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { email: forgotDto.email },
     });
     if (!user) {
       throw new BadRequestException("Email hasn't been registered");
     }
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await this.mailerService.sendMail({
-      to: forgotDto.email,
-      from: 'EliteVetCare" <noreply@elitevetcare.com>',
-      subject: 'Yêu cầu đặt lại mật khẩu mới - EliteVetCare',
-      template: './forgotPassword',
-      context: {
-        otp: otp,
-        fullName: user.user_name || `${user.first_name} ${user.last_name}`,
-      },
-    });
+    const otp = crypto.randomInt(100000, 999999).toString();
+    await this.mailService.sendEmailResetPassword(
+      forgotDto.email,
+      user.fullName,
+      otp,
+    );
+
     await this.cacheManager.set('reset_otp', otp, 300000);
     return {
       message: 'Send to your email successfully',
@@ -190,11 +189,14 @@ export class AuthService {
       throw new BadRequestException('OTP has expired or Invalid OTP');
     }
 
-    // Update the user's password in the database
-    await this.prisma.user.update({
-      data: { password: hash },
-      where: { email: resetDto.email },
-    });
+    // Update the user's password in the config
+    await this.userRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({ password: hash })
+      .where('email= :email', { email: resetDto.email })
+      .execute();
+
     await this.cacheManager.del('reset_otp');
     return {
       message: 'Reset password successfully',
@@ -203,24 +205,25 @@ export class AuthService {
 
   async updateRtHash(userId: number, refreshToken: string) {
     const hashedRt = await argon.hash(refreshToken);
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        hashed_rt: hashedRt,
-      },
-    });
+    await this.userRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({ hashedRt: hashedRt })
+      .where('id= :userId', { userId })
+      .execute();
   }
 
   async refreshToken(
     userId: number,
     refreshToken: string,
   ): Promise<{ accessToken: string }> {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { id: userId },
     });
-    if (!user || !user.hashed_rt) throw new ForbiddenException('Access Denied');
 
-    const rtMatches = await argon.verify(user.hashed_rt, refreshToken);
+    if (!user || !user.hashedRt) throw new ForbiddenException('Access Denied');
+
+    const rtMatches = await argon.verify(user.hashedRt, refreshToken);
     if (!rtMatches) throw new ForbiddenException('Access Denied');
 
     const newJwtAt = await this.jwt.signAsync(
@@ -261,13 +264,19 @@ export class AuthService {
   }
 
   async logout(userId: number) {
-    await this.prisma.user.update({
-      where: {
-        id: userId,
-        hashed_rt: { not: null },
-      },
-      data: { hashed_rt: null },
-    });
-    return true;
+    try {
+      await this.userRepository
+        .createQueryBuilder()
+        .update(User)
+        .set({ hashedRt: null })
+        .where('id= :userId', { userId })
+        .andWhere('hashed_rt IS NOT NULL')
+        .execute();
+      return {
+        message: 'Logout successfully',
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 }

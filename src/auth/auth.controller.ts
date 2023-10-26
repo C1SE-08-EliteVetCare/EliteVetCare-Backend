@@ -7,8 +7,8 @@ import {
   Post,
   Req,
   UnauthorizedException,
-  UseGuards,
-} from '@nestjs/common';
+  UseGuards, UsePipes, ValidationPipe
+} from "@nestjs/common";
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import {
@@ -23,6 +23,7 @@ import { User } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
+@UsePipes(ValidationPipe)
 export class AuthController {
   constructor(private authService: AuthService) {}
 

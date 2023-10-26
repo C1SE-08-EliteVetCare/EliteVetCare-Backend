@@ -1,19 +1,19 @@
-export const roles = [
+export const initRoles = [
   {
-    id: 1,
+    id: 4,
     name: 'Admin',
   },
   {
-    id: 2,
+    id: 5,
     name: 'Pet Owner',
   },
   {
-    id: 3,
+    id: 6,
     name: 'Vet',
   },
 ];
 
-export const clinics = [
+export const initClinics = [
   {
     id: 1,
     name: 'Thú y sông Hàn',
@@ -21,6 +21,7 @@ export const clinics = [
     district: 'Hải Châu',
     ward: 'jksdhakd',
     street_address: 'ạhdsakdhajd',
+    logo: '',
   },
   // {
   //   id: 2,
