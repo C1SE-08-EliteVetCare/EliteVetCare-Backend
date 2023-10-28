@@ -19,11 +19,10 @@ import {
   VerifyDto,
 } from './dto/auth.dto';
 import { GetUser } from '../user/decorator/user.decorator';
-import { User } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
+import { User } from "../entities";
 
 @Controller('auth')
-@UsePipes(ValidationPipe)
 export class AuthController {
   constructor(private authService: AuthService) {}
 
@@ -54,7 +53,7 @@ export class AuthController {
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
   @HttpCode(HttpStatus.OK)
-  async googleAuthRedirect(
+  googleAuthRedirect(
     @GetUser('email') email: string,
     @GetUser('firstName') firstName: string,
     @GetUser('lastName') lastName: string,

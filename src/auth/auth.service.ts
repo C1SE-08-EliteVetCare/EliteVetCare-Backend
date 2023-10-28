@@ -14,7 +14,6 @@ import {
 } from './dto/auth.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { MailerService } from '@nestjs-modules/mailer';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import * as argon from 'argon2';
@@ -40,7 +39,7 @@ export class AuthService {
       where: { email: registerDto.email },
     });
     if (existingUser) {
-      throw new BadRequestException('Email has already registered');
+      throw new UnauthorizedException('Email has already registered');
     }
     // generate the password hash
     const hash = await argon.hash(registerDto.password);

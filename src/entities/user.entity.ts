@@ -31,8 +31,8 @@ export class User {
   @Column('varchar')
   password: string;
 
-  @Column({ default: true, nullable: true })
-  gender: boolean;
+  @Column('char', { length: 3, nullable: true })
+  gender: string;
 
   @Column('varchar', { length: 100, nullable: true })
   city: string;

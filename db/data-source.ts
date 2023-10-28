@@ -14,9 +14,10 @@ import {
 } from '../src/entities';
 import { config } from 'dotenv';
 import * as process from 'process';
+import { SeederOptions } from "typeorm-extension";
 
 config();
-export const dataSourceOptions: DataSourceOptions = {
+export const dataSourceOptions: DataSourceOptions & SeederOptions = {
   type: 'postgres',
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT),
@@ -36,7 +37,9 @@ export const dataSourceOptions: DataSourceOptions = {
     Message,
     Feedback,
   ],
-  synchronize: true,
+  migrations: ['dist/db/migrations/*.js'],
+  seeds: ['dist/db/seeds/*.seeder.js'],
+  synchronize: false,
   ssl: true,
   extra: {
     ssl: {

@@ -9,17 +9,17 @@ import { MailService } from "./mail.service";
   imports: [
     MailerModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (config: ConfigService) => ({
+      useFactory: async (configService: ConfigService) => ({
         transport: {
-          host: config.get('MAIL_HOST'),
+          host: configService.get('MAIL_HOST'),
           secure: true,
           auth: {
-            user: config.get('MAIL_USER'),
-            pass: config.get('MAIL_PASSWORD'),
+            user: configService.get('MAIL_USER'),
+            pass: configService.get('MAIL_PASSWORD'),
           },
         },
         defaults: {
-          form: `"No Reply" <${config.get('MAIL_FORM')}>`,
+          form: `"No Reply" <${configService.get('MAIL_FORM')}>`,
         },
         template: {
           dir: path.join(__dirname, 'templates'),
