@@ -1,4 +1,8 @@
-import { Module } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+} from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -7,10 +11,10 @@ import { ConfigModule } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { PetModule } from './pet/pet.module';
 import { AppointmentModule } from './appointment/appointment.module';
-import { MailModule } from "./config/mail/mail.module";
-import { DataSource } from "typeorm";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { dataSourceOptions } from "../db/data-source";
+import { MailModule } from './config/mail/mail.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { dataSourceOptions } from '../db/data-source';
+import { CloudinaryModule } from './config/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -24,11 +28,15 @@ import { dataSourceOptions } from "../db/data-source";
     UserModule,
     PetModule,
     AppointmentModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {
-  constructor(private dataSource: DataSource) {
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): any {
+    // consumer
+    //   .apply(LoggerMiddleware)
+    //   .forRoutes({ path: 'pet/pets', method: RequestMethod.GET });
   }
 }
