@@ -16,17 +16,20 @@ import {
   UseInterceptors,
   HttpStatus,
   HttpCode,
-  Put, Query
-} from "@nestjs/common";
+  Put,
+  Query,
+  UploadedFiles,
+} from '@nestjs/common';
 import { PetService } from './pet.service';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { RoleGuard } from '../auth/guard/role.guard';
 import { GetUser } from '../user/decorator/user.decorator';
 import { IsOptional } from 'class-validator';
-import { FilterPetDto } from "./dto/filter-pet.dto";
+import { FilterPetDto } from './dto/filter-pet.dto';
+import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
 
 @Controller('pet')
 export class PetController {
@@ -59,9 +62,10 @@ export class PetController {
     return this.petService.findAll(ownerId, query);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.petService.findOne(+id);
+  findOne(@Param('id') id: string, @GetUser('id') ownerId: number) {
+    return this.petService.findOne(+id, ownerId);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -91,5 +95,27 @@ export class PetController {
   @HttpCode(HttpStatus.OK)
   remove(@Param('id') id: string, @GetUser('id') ownerId: number) {
     return this.petService.remove(+id, ownerId);
+  }
+
+  // Condition
+  @UseGuards(AuthGuard('jwt'))
+  @Get('condition/:id')
+  getCondition(@Param('id') petId: string) {
+    return this.petService.getCondition(+petId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Put('condition/:id')
+  @UseInterceptors(FilesInterceptor('actualImg'))
+  updateCondition(
+    @UploadedFiles() files: Array<Express.Multer.File>,
+    @Param('id') petId: string,
+    @Body() updatePetConditionDto: UpdatePetConditionDto,
+  ) {
+    return this.petService.updateCondition(
+      +petId,
+      updatePetConditionDto,
+      files,
+    );
   }
 }

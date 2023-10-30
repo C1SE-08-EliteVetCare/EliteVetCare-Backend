@@ -3,15 +3,18 @@ import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { CloudinaryService } from '../config/cloudinary/cloudinary.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Pet } from '../entities';
+import { Pet, PetCondition } from '../entities';
 import { Like, Repository } from 'typeorm';
 import { FilterPetDto } from './dto/filter-pet.dto';
+import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
 
 @Injectable()
 export class PetService {
   constructor(
     @InjectRepository(Pet)
     private petRepository: Repository<Pet>,
+    @InjectRepository(PetCondition)
+    private petConRepository: Repository<PetCondition>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -70,8 +73,10 @@ export class PetService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} pet`;
+  async findOne(id: number, ownerId: number) {
+    return await this.petRepository.findOne({
+      where: { id, ownerId },
+    });
   }
 
   async update(
@@ -115,6 +120,49 @@ export class PetService {
     }
     return {
       message: 'Delete successfully',
+    };
+  }
+
+  // Condition
+  async getCondition(petId: number) {
+    const petCon = await this.petConRepository.findOne({
+      relations: { pet: true },
+      where: { petId },
+    });
+    if (!petCon) {
+      const newPetCon = this.petConRepository.create({ petId });
+      return await this.petConRepository.save(newPetCon);
+    }
+    return petCon;
+  }
+
+  async updateCondition(
+    petId: number,
+    updatePetConditionDto: UpdatePetConditionDto,
+    files: Array<Express.Multer.File>,
+  ) {
+    const petCon = await this.petConRepository.findOne({
+      where: { petId },
+    });
+    const folder = 'pet-condition';
+    let actualImg = '';
+    if (petCon) {
+      const { url } = files.length > 0 && (await this.cloudinaryService.uploadFile(files[0], folder));
+      actualImg = files.length > 0 ? url : '';
+
+      const res = await this.petConRepository.update(
+        { petId },
+        {
+          ...updatePetConditionDto,
+          actualImg,
+        },
+      );
+    } else {
+      throw new BadRequestException('Invalid pet id');
+    }
+
+    return {
+      message: 'Update successfully',
     };
   }
 }

@@ -44,19 +44,13 @@ export class AuthService {
     // generate the password hash
     const hash = await argon.hash(registerDto.password);
 
-    await this.userRepository
-      .createQueryBuilder()
-      .insert()
-      .into(User)
-      .values([
-        {
-          email: registerDto.email,
-          password: hash,
-          fullName: registerDto.fullName,
-          phone: registerDto.phone,
-        },
-      ])
-      .execute();
+    const newUser = this.userRepository.create({
+      email: registerDto.email,
+      password: hash,
+      fullName: registerDto.fullName,
+      phone: registerDto.phone,
+    })
+    await this.userRepository.save(newUser)
 
     // Verify email and save into cache
     // const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -126,23 +120,18 @@ export class AuthService {
     });
 
     if (!user) {
-      const newUser = await this.userRepository
-        .createQueryBuilder()
-        .insert()
-        .into(User)
-        .values([
-          {
-            email: email,
-            fullName: `${firstName} ${lastName}`,
-            password: '',
-            avatar: picture,
-            phone: '',
-          },
-        ])
-        .execute();
+      const newUser = this.userRepository.create({
+        email: email,
+        fullName: `${firstName} ${lastName}`,
+        password: '',
+        avatar: picture,
+        phone: '',
+      })
+      await this.userRepository.save(newUser)
+
       const token = await this.generateJwtToken(
-        newUser.raw[0].id,
-        newUser.raw[0].email,
+        newUser.id,
+        newUser.email,
       );
       return {
         message: 'Create new user and signed in',

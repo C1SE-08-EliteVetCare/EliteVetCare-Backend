@@ -1,12 +1,13 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToMany,
   OneToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+  PrimaryGeneratedColumn, UpdateDateColumn
+} from "typeorm";
 import { User } from './user.entity';
 import { PetTreatment } from './petTreatment.entity';
 import { PetCondition } from './petCondition.entity';
@@ -42,6 +43,9 @@ export class Pet {
 
   @Column({ name: 'owner_id' })
   ownerId: number;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 
   @ManyToOne(() => User, (user) => user.pets)
   @JoinColumn({ name: 'owner_id' })

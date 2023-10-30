@@ -2,31 +2,31 @@ import { IsNotEmpty, IsString } from 'class-validator';
 import { Type } from "class-transformer";
 
 export class CreatePetDto {
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   name: string;
 
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   species: string;
 
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   breed: string;
 
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   gender: string;
 
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   age: string;
 
-  @IsNotEmpty()
   @Type(() => Number)
+  @IsNotEmpty()
   weight: number;
 
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   furColor: string;
 }

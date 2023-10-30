@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { PetService } from './pet.service';
 import { PetController } from './pet.controller';
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { Pet } from "../entities";
+import { Pet, PetCondition } from "../entities";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Pet])],
+  imports: [TypeOrmModule.forFeature([Pet, PetCondition])],
   controllers: [PetController],
   providers: [PetService],
 })
