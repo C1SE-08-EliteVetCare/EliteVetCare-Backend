@@ -68,7 +68,7 @@ export class User {
   clinicId: number;
 
   @CreateDateColumn({ name: 'created_at', nullable: true })
-  createdAt: number;
+  createdAt: Date;
 
   @ManyToOne(() => Role, (role) => role.users)
   @JoinColumn({ name: 'role_id' })

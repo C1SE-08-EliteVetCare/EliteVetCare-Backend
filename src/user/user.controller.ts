@@ -3,14 +3,10 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
-  Delete,
   UseGuards,
   HttpCode,
   HttpStatus,
-  UsePipes,
-  ValidationPipe,
   UseInterceptors,
   UploadedFile,
   Put,
@@ -94,15 +90,5 @@ export class UserController {
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
     return this.userService.changePassword(id, changePasswordDto);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
   }
 }

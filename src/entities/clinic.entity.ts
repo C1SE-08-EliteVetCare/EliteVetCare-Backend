@@ -1,5 +1,6 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { User } from "./user.entity";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { User } from './user.entity';
+import { Appointment } from './appointment.entity';
 
 @Entity()
 export class Clinic {
@@ -25,5 +26,8 @@ export class Clinic {
   logo: string;
 
   @OneToMany(() => User, (user) => user.clinic)
-  users: User[]
+  users: User[];
+
+  @OneToMany(() => Appointment, (appointment) => appointment.clinic)
+  appointments: Appointment[];
 }

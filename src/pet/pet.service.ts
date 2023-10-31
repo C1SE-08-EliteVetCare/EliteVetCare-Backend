@@ -73,8 +73,8 @@ export class PetService {
     };
   }
 
-  async findOne(id: number, ownerId: number) {
-    return await this.petRepository.findOne({
+  findOne(id: number, ownerId: number) {
+    return this.petRepository.findOne({
       where: { id, ownerId },
     });
   }

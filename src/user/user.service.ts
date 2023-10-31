@@ -36,10 +36,6 @@ export class UserService {
     };
   }
 
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
-  }
-
   async findAll(): Promise<any> {
     const [res, total] = await this.userRepository.findAndCount();
     return {
@@ -116,13 +112,5 @@ export class UserService {
     return {
       message: 'Change password successfully',
     };
-  }
-
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
   }
 }

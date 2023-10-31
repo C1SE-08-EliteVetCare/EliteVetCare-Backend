@@ -1,6 +1,14 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { User } from "./user.entity";
-import { VetAppointment } from "./vetAppointment.entity";
+import {
+  Column, CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToOne,
+  PrimaryGeneratedColumn, UpdateDateColumn
+} from "typeorm";
+import { User } from './user.entity';
+import { VetAppointment } from './vetAppointment.entity';
+import { Clinic } from "./clinic.entity";
 
 @Entity()
 export class Appointment {
@@ -10,13 +18,13 @@ export class Appointment {
   @Column({ name: 'owner_id' })
   ownerId: number;
 
-  @Column({ name: 'appointment_date' })
-  appointmentDate: number;
+  @Column('date',{ name: 'appointment_date' })
+  appointmentDate: Date;
 
   @Column({ name: 'appointment_time' })
-  appointmentTime: number;
+  appointmentTime: string;
 
-  @Column({ name: 'service_package' })
+  @Column('varchar',{ name: 'service_package', length: 30 })
   servicePackage: string;
 
   @Column({ name: 'clinic_id' })
@@ -25,13 +33,30 @@ export class Appointment {
   @Column('varchar', { length: 20 })
   status: string;
 
-  @Column({ name: 'accepted_id' })
+  @Column({ name: 'accepted_id', nullable: true })
   acceptedId: number;
 
-  @ManyToOne(() => User, (user) => user.appointments)
-  @JoinColumn({name: "owner_id"})
-  user: User
+  @CreateDateColumn({name: 'created_at'})
+  createdAt: Date;
 
-  @OneToOne(() => VetAppointment, (vetAppointment) => vetAppointment.appointment)
-  vetAppointment: VetAppointment
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+
+  @ManyToOne(() => User, (user) => user.appointments)
+  @JoinColumn({ name: 'owner_id' })
+  user: User;
+
+  @OneToOne(
+    () => VetAppointment,
+    (vetAppointment) => vetAppointment.appointment,
+  )
+  @JoinColumn({ name: 'accepted_id' })
+  vetAppointment: VetAppointment;
+
+  @ManyToOne(
+    () => Clinic,
+    (clinic: Clinic) => clinic.appointments,
+  )
+  @JoinColumn({ name: 'clinic_id' })
+  clinic: Clinic
 }
