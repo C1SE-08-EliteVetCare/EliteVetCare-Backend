@@ -34,12 +34,6 @@ export class UserController {
   getCurrentUser(@GetUser() user: User) {
     return this.userService.getCurrentUser(user);
   }
-
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
-  }
-
   // @UseGuards(new RoleGuard(['Admin']))
   @UseGuards(AuthGuard('jwt'))
   @Get('users')
