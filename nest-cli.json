@@ -4,7 +4,10 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "assets": [
-      "mail/templates/**/*"
+      {
+        "include": "config/mail/templates/**/*",
+        "outDir": "dist/src"
+      }
     ],
     "watchAssets": true
   }
