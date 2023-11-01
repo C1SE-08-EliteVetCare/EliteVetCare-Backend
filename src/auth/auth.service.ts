@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -49,8 +50,8 @@ export class AuthService {
       password: hash,
       fullName: registerDto.fullName,
       phone: registerDto.phone,
-    })
-    await this.userRepository.save(newUser)
+    });
+    await this.userRepository.save(newUser);
 
     // Verify email and save into cache
     // const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -72,13 +73,17 @@ export class AuthService {
     if (otp !== verifyDto.otp) {
       throw new BadRequestException('Invalid OTP');
     }
-    await this.userRepository
+    const res = await this.userRepository
       .createQueryBuilder()
       .update(User)
       .set({ operatingStatus: true })
       .where('email = :email', { email: verifyDto.email })
       .execute();
-
+    if (res.affected <= 0) {
+      throw new NotFoundException(
+        'The email sent does not match the registered email',
+      );
+    }
     await this.cacheManager.del('user_otp');
     return {
       message: 'Success verified',
@@ -107,8 +112,6 @@ export class AuthService {
     };
   }
 
-  // async googleLogin(req) {}
-
   async googleAuthRedirect(
     email: string,
     firstName: string,
@@ -126,13 +129,10 @@ export class AuthService {
         password: '',
         avatar: picture,
         phone: '',
-      })
-      await this.userRepository.save(newUser)
+      });
+      await this.userRepository.save(newUser);
 
-      const token = await this.generateJwtToken(
-        newUser.id,
-        newUser.email,
-      );
+      const token = await this.generateJwtToken(newUser.id, newUser.email);
       return {
         message: 'Create new user and signed in',
         ...token,
@@ -192,7 +192,12 @@ export class AuthService {
   }
 
   async updateRtHash(userId: number, refreshToken: string) {
-    const hashedRt = await argon.hash(refreshToken);
+    const salt = Buffer.from(
+      this.configService.get<string>('SALT_KEY'),
+      'base64',
+    );
+
+    const hashedRt = await argon.hash(refreshToken, { salt });
     await this.userRepository
       .createQueryBuilder()
       .update(User)
@@ -202,11 +207,15 @@ export class AuthService {
   }
 
   async refreshToken(
-    userId: number,
     refreshToken: string,
   ): Promise<{ accessToken: string }> {
+    const salt = Buffer.from(
+      this.configService.get<string>('SALT_KEY'),
+      'base64',
+    );
+    const hashedRt = await argon.hash(refreshToken, { salt });
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { hashedRt },
     });
 
     if (!user || !user.hashedRt) throw new ForbiddenException('Access Denied');
@@ -218,7 +227,7 @@ export class AuthService {
       { sub: user.id, email: user.email },
       {
         expiresIn: '30m',
-        secret: this.configService.get('JWT_SECRET'),
+        secret: this.configService.get('JWT_AT_SECRET'),
       },
     );
     return {
@@ -237,11 +246,11 @@ export class AuthService {
     const [jwtAt, jwtRt] = await Promise.all([
       this.jwt.signAsync(payload, {
         expiresIn: '30m',
-        secret: this.configService.get('JWT_SECRET'),
+        secret: this.configService.get('JWT_AT_SECRET'),
       }),
       this.jwt.signAsync(payload, {
         expiresIn: '30d',
-        secret: this.configService.get('JWT_SECRET'),
+        secret: this.configService.get('JWT_RT_SECRET'),
       }),
     ]);
 
