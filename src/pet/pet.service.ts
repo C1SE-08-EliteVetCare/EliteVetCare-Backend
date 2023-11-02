@@ -8,7 +8,7 @@ import { UpdatePetDto } from './dto/update-pet.dto';
 import { CloudinaryService } from '../config/cloudinary/cloudinary.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Pet, PetCondition, PetTreatment } from "../entities";
-import { Like, Repository } from 'typeorm';
+import { IsNull, Like, Repository } from "typeorm";
 import { FilterPetDto } from './dto/filter-pet.dto';
 import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
 
@@ -96,7 +96,7 @@ export class PetService {
     const keyword = query.search || '';
 
     const [res, total] = await this.petRepository.findAndCount({
-      order: { name: 'ASC' },
+      order: { createdAt: 'DESC' },
       take: limit,
       skip: skip,
       where: { ownerId, name: Like(`%${keyword}%`) },
@@ -210,13 +210,18 @@ export class PetService {
   }
 
   // Vet future
-  async findAllForVet(clinicId: number, query: FilterPetDto) {
+  async findAllTreatment(clinicId: number, query: FilterPetDto) {
     const limit = query.limit || 10;
     const page = query.page || 1;
     const skip = (page - 1) * limit;
     const keyword = query.search || '';
+    const status = +query.status === 1 ? IsNull() : undefined
     const [res, total] = await this.petTreatmentRepository.findAndCount({
-      where: { clinicId },
+      order: { createdAt: 'DESC' },
+      where: [
+        // { clinicId, vetId: status },
+        { clinicId, vetId: status ,pet: { name: Like(`%${keyword}%`) } }
+      ],
       relations: {
         pet: {
           user: true,
@@ -239,9 +244,9 @@ export class PetService {
     };
   }
 
-  async findOneForVet(id: number) {
+  async findOneTreatment(petId: number) {
     const res = await this.petTreatmentRepository.findOne({
-      where: { id },
+      where: { petId: petId },
       relations: {
         pet: {
           user: true,
@@ -249,6 +254,9 @@ export class PetService {
         user: true
       },
     });
+    if (!res) {
+      throw new NotFoundException("Pet id is not found")
+    }
     return petTreatmentData(res, true)
   }
 }

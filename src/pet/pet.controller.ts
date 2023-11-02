@@ -84,19 +84,19 @@ export class PetController {
     return this.petService.findAll(ownerId, query);
   }
 
-  // Tracking vet
-  @UseGuards(new RoleGuard(['Pet Owner', 'Vet']))
+  // Tracking pet
+  @UseGuards(new RoleGuard(['Vet']))
   @UseGuards(AuthGuard('jwt'))
   @Get('pet-treatments')
-  findAllForVet(@GetUser('clinic') clinic: Clinic, @Query() query: FilterPetDto) {
-    return this.petService.findAllForVet(clinic.id, query)
+  findAllTreatment(@GetUser('clinic') clinic: Clinic, @Query() query: FilterPetDto) {
+    return this.petService.findAllTreatment(clinic.id, query)
   }
 
   @UseGuards(new RoleGuard(['Pet Owner', 'Vet']))
   @UseGuards(AuthGuard('jwt'))
-  @Get('pet-treatments/:id')
-  findOneForVet(@Param('id') id: string) {
-    return this.petService.findOneForVet(+id);
+  @Get('pet-treatments/:petId')
+  findOneTreatment(@Param('petId') petId: string) {
+    return this.petService.findOneTreatment(+petId);
   }
 
   @UseGuards(AuthGuard('jwt'))

@@ -9,7 +9,7 @@ import { Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon from 'argon2';
 import { CloudinaryService } from '../config/cloudinary/cloudinary.service';
-import { FilterPetDto } from '../pet/dto/filter-pet.dto';
+import { FilterUserDto } from "./dto/filter-user.dto";
 
 @Injectable()
 export class UserService {
@@ -35,7 +35,7 @@ export class UserService {
     };
   }
 
-  async findAll(query: FilterPetDto): Promise<any> {
+  async findAll(query: FilterUserDto): Promise<any> {
     const limit = query.limit || 10;
     const page = query.page || 1;
     const skip = (page - 1) * limit;

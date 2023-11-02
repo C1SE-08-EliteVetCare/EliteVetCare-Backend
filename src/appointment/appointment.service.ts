@@ -112,6 +112,9 @@ export class AppointmentService {
       },
       where: { id: id },
     });
+    if (!res) {
+      throw new NotFoundException("Appointment id is not found")
+    }
     return appointmentData(res, true)
   }
 

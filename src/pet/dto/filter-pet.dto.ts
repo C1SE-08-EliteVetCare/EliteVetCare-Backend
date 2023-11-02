@@ -12,4 +12,8 @@ export class FilterPetDto {
 
   @IsOptional()
   search: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  status: string;
 }
