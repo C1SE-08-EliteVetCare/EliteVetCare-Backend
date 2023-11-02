@@ -12,16 +12,16 @@ import {
   Put,
   ParseFilePipe,
   MaxFileSizeValidator,
-  FileTypeValidator,
-} from '@nestjs/common';
+  FileTypeValidator, Patch, Query
+} from "@nestjs/common";
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { ChangePasswordDto, UpdateUserDto } from './dto/update-user.dto';
 import { RoleGuard } from '../auth/guard/role.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from './decorator/user.decorator';
 import { User } from '../entities';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { FilterUserDto } from "./dto/filter-user.dto";
 
 @Controller('user')
 export class UserController {
@@ -34,12 +34,13 @@ export class UserController {
   getCurrentUser(@GetUser() user: User) {
     return this.userService.getCurrentUser(user);
   }
-  // @UseGuards(new RoleGuard(['Admin']))
+
+  @UseGuards(new RoleGuard(['Admin']))
   @UseGuards(AuthGuard('jwt'))
   @Get('users')
   @HttpCode(HttpStatus.OK)
-  findAll(): Promise<any> {
-    return this.userService.findAll();
+  findAll(@Query() query: FilterUserDto): Promise<any> {
+    return this.userService.findAll(query);
   }
 
   @Get(':id')
@@ -84,5 +85,12 @@ export class UserController {
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
     return this.userService.changePassword(id, changePasswordDto);
+  }
+
+  @UseGuards(new RoleGuard(['Admin']))
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('/update-role')
+  updateRole(@Body() body: {userId: string, roleId: string}) {
+    return this.userService.updateRole(+body.userId, +body.roleId)
   }
 }

@@ -2,15 +2,14 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
 import { ChangePasswordDto, UpdateUserDto } from './dto/update-user.dto';
 import { User } from '../entities';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon from 'argon2';
 import { CloudinaryService } from '../config/cloudinary/cloudinary.service';
+import { FilterPetDto } from '../pet/dto/filter-pet.dto';
 
 @Injectable()
 export class UserService {
@@ -36,11 +35,35 @@ export class UserService {
     };
   }
 
-  async findAll(): Promise<any> {
-    const [res, total] = await this.userRepository.findAndCount();
+  async findAll(query: FilterPetDto): Promise<any> {
+    const limit = query.limit || 10;
+    const page = query.page || 1;
+    const skip = (page - 1) * limit;
+    const keyword = query.search || '';
+    const [res, total] = await this.userRepository.findAndCount({
+      order: { createdAt: 'ASC' },
+      take: limit,
+      skip: skip,
+      where: { fullName: Like(`%${keyword}%`) },
+      select: {
+        id: true, email: true, fullName: true, phone: true, gender: true, city: true, district: true, ward: true,
+        birthYear: true, avatar: true, operatingStatus: true, createdAt: true
+      },
+      relations: {
+        role: true,
+        clinic: true
+      }
+    });
+    const lastPage = Math.ceil(total / limit);
+    const nextPage = page + 1 > lastPage ? null : page + 1;
+    const prevPage = page - 1 < 1 ? null : page - 1;
     return {
       data: res,
       total,
+      currentPage: page,
+      lastPage,
+      nextPage,
+      prevPage,
     };
   }
 
@@ -70,7 +93,7 @@ export class UserService {
       const { url } = await this.cloudinaryService.uploadFile(file, folder);
 
       // Update avatar url into database
-      const res = await this.userRepository
+      await this.userRepository
         .createQueryBuilder()
         .update(User)
         .set({ avatar: url })
@@ -78,9 +101,9 @@ export class UserService {
         .execute();
 
       return {
-        message: "Update successfully",
-        url
-      }
+        message: 'Update successfully',
+        url,
+      };
     } catch (error) {
       throw error;
     }
@@ -111,6 +134,18 @@ export class UserService {
 
     return {
       message: 'Change password successfully',
+    };
+  }
+
+  async updateRole(userId: number, newRoleId: number) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (!user) throw new NotFoundException('User is not found');
+    user.roleId = newRoleId;
+    await this.userRepository.save(user);
+    return {
+      message: 'Update role successfully',
     };
   }
 }

@@ -14,7 +14,7 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from '../user/decorator/user.decorator';
-import { User } from '../entities';
+import { Clinic, User } from '../entities';
 import { FilterAppointmentDto } from './dto/filter-appointment.dto';
 import { RoleGuard } from '../auth/guard/role.guard';
 
@@ -40,12 +40,25 @@ export class AppointmentController {
     return this.appointmentService.findAll(ownerId, query);
   }
 
+  @UseGuards(new RoleGuard(['Vet']))
+  @UseGuards(AuthGuard('jwt'))
+  @Get('vet-appointments')
+  fillAllForVet(@GetUser('clinic') clinic: Clinic, @Query() query: FilterAppointmentDto) {
+    return this.appointmentService.findAllForVet(clinic.id, query)
+  }
+
+  @Get('vet-appointments/:id')
+  findOneForVet(@Param('id') id: string) {
+    return this.appointmentService.findOneForVet(+id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.appointmentService.findOne(+id);
   }
 
   // Vet feature
+  @UseGuards(new RoleGuard(['Vet']))
   @UseGuards(AuthGuard('jwt'))
   @Patch('update-status/:id')
   updateStatus(

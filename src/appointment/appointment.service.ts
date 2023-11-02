@@ -4,8 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
-import { UpdateAppointmentDto } from './dto/update-appointment.dto';
-import { Appointment, User, VetAppointment } from '../entities';
+import { Appointment, VetAppointment } from '../entities';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
 import { FilterAppointmentDto } from './dto/filter-appointment.dto';
@@ -40,17 +39,11 @@ export class AppointmentService {
 
     const [res, total] = await this.appointRepository.findAndCount({
       order: { createdAt: 'DESC' },
-      select: {
-        id: true,
-        appointmentDate: true,
-        appointmentTime: true,
-        servicePackage: true,
-        status: true,
-        acceptedId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
       relations: {
+        user: true,
+        vetAppointment: {
+          user: true,
+        },
         clinic: true,
       },
       take: limit,
@@ -61,7 +54,7 @@ export class AppointmentService {
     const nextPage = page + 1 > lastPage ? null : page + 1;
     const prevPage = page - 1 < 1 ? null : page - 1;
     return {
-      data: res,
+      data: appointmentData(res),
       total,
       currentPage: page,
       lastPage,
@@ -70,23 +63,56 @@ export class AppointmentService {
     };
   }
 
-  findOne(id: number) {
-    return this.appointRepository.findOne({
+  async findOne(id: number) {
+    const res = await this.appointRepository.findOne({
       relations: {
-        vetAppointment: true,
-        clinic: true
-      },
-      select: {
-        id: true,
-        appointmentDate: true,
-        appointmentTime: true,
-        servicePackage: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
+        vetAppointment: {
+          user: true
+        },
+        clinic: true,
       },
       where: { id },
     });
+    return appointmentData(res, true);
+  }
+
+  // Vet feature
+  async findAllForVet(clinicId: number, query: FilterAppointmentDto) {
+    const limit = query.limit || 10;
+    const page = query.page || 1;
+    const skip = (page - 1) * limit;
+    const keyword = query.search || '';
+
+    const [res, total] = await this.appointRepository.findAndCount({
+      order: { createdAt: 'DESC' },
+      relations: {
+        user: true,
+      },
+      take: limit,
+      skip: skip,
+      where: { clinicId, servicePackage: Like(`%${keyword}%`) },
+    });
+    const lastPage = Math.ceil(total / limit);
+    const nextPage = page + 1 > lastPage ? null : page + 1;
+    const prevPage = page - 1 < 1 ? null : page - 1;
+    return {
+      data: appointmentData(res),
+      total,
+      currentPage: page,
+      lastPage,
+      nextPage,
+      prevPage,
+    };
+  }
+
+  async findOneForVet(id: number) {
+    const res = await this.appointRepository.findOne({
+      relations: {
+        user: true,
+      },
+      where: { id: id },
+    });
+    return appointmentData(res, true)
   }
 
   async updateStatus(id: number, vetId: number, status: number) {
@@ -114,3 +140,47 @@ export class AppointmentService {
     };
   }
 }
+
+const appointmentData = (res: any, isObject: boolean = false) => {
+  if (isObject) {
+    return transformAppointment(res);
+  }
+  return res.map((appointment: Appointment) =>
+    transformAppointment(appointment),
+  );
+};
+
+const transformAppointment = (appointment: Appointment) => {
+  return {
+    id: appointment.id,
+    appointmentDate: appointment.appointmentDate,
+    appointmentTime: appointment.appointmentTime,
+    servicePackage: appointment.servicePackage,
+    status: appointment.status,
+    acceptedId: appointment.acceptedId,
+    createdAt: appointment.createdAt,
+    updatedAt: appointment.updatedAt,
+    petOwner: {
+      ownerId: appointment?.user?.id,
+      fullName: appointment?.user?.fullName,
+      email: appointment?.user?.email,
+      phone: appointment?.user?.phone,
+    },
+    vetAppointment: {
+      vetId: appointment.vetAppointment?.user?.id,
+      fullName: appointment.vetAppointment?.user?.fullName,
+      email: appointment.vetAppointment?.user?.email,
+      phone: appointment.vetAppointment?.user?.phone,
+      dateAccepted: appointment.vetAppointment?.dateAccepted,
+    },
+    clinic: {
+      id: appointment.clinic?.id,
+      name: appointment.clinic?.name,
+      city: appointment.clinic?.city,
+      district: appointment.clinic?.district,
+      ward: appointment.clinic?.ward,
+      streetAddress: appointment.clinic?.streetAddress,
+      logo: appointment.clinic?.logo,
+    },
+  };
+};
