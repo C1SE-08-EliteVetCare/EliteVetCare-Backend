@@ -1,9 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { CloudinaryService } from '../config/cloudinary/cloudinary.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Pet, PetCondition } from '../entities';
+import { Pet, PetCondition, PetTreatment } from "../entities";
 import { Like, Repository } from 'typeorm';
 import { FilterPetDto } from './dto/filter-pet.dto';
 import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
@@ -15,6 +19,8 @@ export class PetService {
     private petRepository: Repository<Pet>,
     @InjectRepository(PetCondition)
     private petConRepository: Repository<PetCondition>,
+    @InjectRepository(PetTreatment)
+    private petTreatmentRepository: Repository<PetTreatment>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -46,6 +52,41 @@ export class PetService {
     } catch (error) {
       throw new BadRequestException('Has error when create');
     }
+  }
+
+  async sendTreatment(ownerId: number, petId: number, clinicId: number) {
+    const pet = await this.petRepository.findOne({
+      where: { id: petId, ownerId },
+    });
+    if (!pet) {
+      throw new NotFoundException('You do not have a record for this pet');
+    }
+    const newTreatment = this.petTreatmentRepository.create({
+      petId,
+      clinicId,
+    });
+    await this.petTreatmentRepository.save(newTreatment);
+    return {
+      message: 'Send successfully',
+    };
+  }
+
+  async acceptTreatment(vetId: number, treatmentId: number) {
+    const currentDate = new Date();
+    const dateAccepted = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDay()}`;
+    const res = await this.petTreatmentRepository.update(
+      { id: treatmentId },
+      {
+        vetId,
+        dateAccepted,
+      },
+    );
+    if (res.affected <= 0) {
+      throw new BadRequestException('Has error when update');
+    }
+    return {
+      message: 'Accept successfully',
+    };
   }
 
   async findAll(ownerId: number, query: FilterPetDto): Promise<any> {
@@ -147,10 +188,12 @@ export class PetService {
     const folder = 'pet-condition';
     let actualImg = '';
     if (petCon) {
-      const { url } = files.length > 0 && (await this.cloudinaryService.uploadFile(files[0], folder));
+      const { url } =
+        files.length > 0 &&
+        (await this.cloudinaryService.uploadFile(files[0], folder));
       actualImg = files.length > 0 ? url : '';
 
-      const res = await this.petConRepository.update(
+      await this.petConRepository.update(
         { petId },
         {
           ...updatePetConditionDto,
@@ -164,5 +207,89 @@ export class PetService {
     return {
       message: 'Update successfully',
     };
+  }
+
+  // Vet future
+  async findAllForVet(clinicId: number, query: FilterPetDto) {
+    const limit = query.limit || 10;
+    const page = query.page || 1;
+    const skip = (page - 1) * limit;
+    const keyword = query.search || '';
+    const [res, total] = await this.petTreatmentRepository.findAndCount({
+      where: { clinicId },
+      relations: {
+        pet: {
+          user: true,
+        },
+        user: true
+      },
+      take: limit,
+      skip: skip,
+    });
+    const lastPage = Math.ceil(total / limit);
+    const nextPage = page + 1 > lastPage ? null : page + 1;
+    const prevPage = page - 1 < 1 ? null : page - 1;
+    return {
+      data: petTreatmentData(res),
+      total,
+      currentPage: page,
+      lastPage,
+      nextPage,
+      prevPage,
+    };
+  }
+
+  async findOneForVet(id: number) {
+    const res = await this.petTreatmentRepository.findOne({
+      where: { id },
+      relations: {
+        pet: {
+          user: true,
+        },
+        user: true
+      },
+    });
+    return petTreatmentData(res, true)
+  }
+}
+
+const petTreatmentData = (res: any, isObject: boolean = false) => {
+  if (isObject) {
+    return transformData(res);
+  }
+  return res.map((petTreatment: PetTreatment) =>
+    transformData(petTreatment),
+  );
+};
+
+const transformData = (petTreatment: PetTreatment) => {
+  return {
+    id: petTreatment.id,
+    clinicId: petTreatment.clinicId,
+    dateAccepted: petTreatment.dateAccepted,
+    createdAt: petTreatment.createdAt,
+    pet: {
+      id: petTreatment?.pet?.id,
+      name: petTreatment?.pet?.name,
+      species: petTreatment?.pet?.species,
+      breed: petTreatment?.pet?.breed,
+      gender: petTreatment?.pet?.gender,
+      age: petTreatment?.pet?.age,
+      weight: petTreatment?.pet?.weight,
+      furColor: petTreatment?.pet?.furColor,
+      avatar: petTreatment?.pet?.avatar,
+      owner: {
+        id: petTreatment?.pet?.user?.id,
+        email: petTreatment?.pet?.user?.email,
+        fullName: petTreatment?.pet?.user?.fullName,
+        phone: petTreatment?.pet?.user?.phone
+      },
+    },
+    vet: {
+      id: petTreatment?.user?.id,
+      email: petTreatment?.user?.email,
+      fullName: petTreatment?.user?.fullName,
+      phone: petTreatment?.user?.phone
+    }
   }
 }

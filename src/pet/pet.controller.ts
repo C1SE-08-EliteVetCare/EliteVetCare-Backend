@@ -30,6 +30,8 @@ import { GetUser } from '../user/decorator/user.decorator';
 import { IsOptional } from 'class-validator';
 import { FilterPetDto } from './dto/filter-pet.dto';
 import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
+import { Clinic } from "../entities";
+import { FilterAppointmentDto } from "../appointment/dto/filter-appointment.dto";
 
 @Controller('pet')
 export class PetController {
@@ -55,11 +57,46 @@ export class PetController {
     return this.petService.create(id, createPetDto, file);
   }
 
+  @UseGuards(new RoleGuard(['Pet Owner']))
+  @UseGuards(AuthGuard('jwt'))
+  @Post('send-treatment')
+  sendTreatment(
+    @GetUser('id') ownerId: number,
+    @Body() body: { petId: string; clinicId: string },
+  ) {
+    return this.petService.sendTreatment(ownerId, +body.petId, +body.clinicId);
+  }
+
+  @UseGuards(new RoleGuard(['Vet']))
+  @UseGuards(AuthGuard('jwt'))
+  @Post('accept-treatment')
+  acceptTreatment(
+    @GetUser('id') vetId: number,
+    @Body() body: { treatmentId: string },
+  ) {
+    return this.petService.acceptTreatment(vetId, +body.treatmentId);
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Get('pets')
   @HttpCode(HttpStatus.OK)
   findAll(@GetUser('id') ownerId: number, @Query() query: FilterPetDto) {
     return this.petService.findAll(ownerId, query);
+  }
+
+  // Tracking vet
+  @UseGuards(new RoleGuard(['Pet Owner', 'Vet']))
+  @UseGuards(AuthGuard('jwt'))
+  @Get('pet-treatments')
+  findAllForVet(@GetUser('clinic') clinic: Clinic, @Query() query: FilterPetDto) {
+    return this.petService.findAllForVet(clinic.id, query)
+  }
+
+  @UseGuards(new RoleGuard(['Pet Owner', 'Vet']))
+  @UseGuards(AuthGuard('jwt'))
+  @Get('pet-treatments/:id')
+  findOneForVet(@Param('id') id: string) {
+    return this.petService.findOneForVet(+id);
   }
 
   @UseGuards(AuthGuard('jwt'))

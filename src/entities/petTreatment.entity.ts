@@ -4,31 +4,42 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToMany,
   OneToOne,
-  PrimaryGeneratedColumn
-} from "typeorm";
-import { Pet } from "./pet.entity";
-import { User } from "./user.entity";
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Pet } from './pet.entity';
+import { User } from './user.entity';
+import { Clinic } from './clinic.entity';
 
-@Entity("pet_treatment")
+@Entity('pet_treatment')
 export class PetTreatment {
   @PrimaryGeneratedColumn()
-  id: number
+  id: number;
 
-  @Column()
-  pet_id: number
+  @Column({ name: 'pet_id' })
+  petId: number;
 
-  @Column()
-  vet_id: number
+  @Column({ name: 'vet_id', nullable: true })
+  vetId: number;
 
-  @CreateDateColumn({name: "date_accepted"})
-  dateAccepted: number
+  @Column({ name: 'clinic_id' })
+  clinicId: number;
+
+  @Column('date',{ name: 'date_accepted', nullable: true})
+  dateAccepted: Date;
+
+  @CreateDateColumn({name: 'created_at'})
+  createdAt: Date;
 
   @ManyToOne(() => User, (user) => user.petTreatments)
-  user: User
+  @JoinColumn({ name: 'vet_id' })
+  user: User;
 
   @OneToOne(() => Pet, (pet) => pet.petTreatment)
-  @JoinColumn({name: "pet_id"})
-  pet: Pet
+  @JoinColumn({ name: 'pet_id' })
+  pet: Pet;
+
+  @ManyToOne(() => Clinic, (clinic) => clinic.petTreatments)
+  @JoinColumn({ name: 'clinic_id' })
+  clinic: Clinic;
 }
