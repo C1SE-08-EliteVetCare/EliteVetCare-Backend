@@ -15,6 +15,7 @@ import { MailModule } from './config/mail/mail.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from '../db/data-source';
 import { CloudinaryModule } from './config/cloudinary/cloudinary.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { CloudinaryModule } from './config/cloudinary/cloudinary.module';
     PetModule,
     AppointmentModule,
     CloudinaryModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [AppService],

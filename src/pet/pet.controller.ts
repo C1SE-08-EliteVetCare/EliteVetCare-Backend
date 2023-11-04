@@ -32,6 +32,7 @@ import { FilterPetDto } from './dto/filter-pet.dto';
 import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
 import { Clinic } from "../entities";
 import { FilterAppointmentDto } from "../appointment/dto/filter-appointment.dto";
+import { UpdateVetAdviceDto } from "./dto/update-vet-advice.dto";
 
 @Controller('pet')
 export class PetController {
@@ -154,5 +155,14 @@ export class PetController {
       updatePetConditionDto,
       files,
     );
+  }
+
+  @UseGuards(new RoleGuard(['Vet']))
+  @UseGuards(AuthGuard('jwt'))
+  @Put('vet-advice/:id')
+  updateVetAdvice(
+    @GetUser('id') vetId: number,
+    @Param('id') petId: string, @Body() updateVetAdviceDto: UpdateVetAdviceDto) {
+    return this.petService.updateVetAdvice(vetId, +petId , updateVetAdviceDto)
   }
 }

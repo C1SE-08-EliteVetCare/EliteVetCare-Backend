@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ChangePasswordDto, UpdateUserDto } from './dto/update-user.dto';
 import { User } from '../entities';
-import { Like, Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon from 'argon2';
 import { CloudinaryService } from '../config/cloudinary/cloudinary.service';
@@ -41,10 +41,10 @@ export class UserService {
     const skip = (page - 1) * limit;
     const keyword = query.search || '';
     const [res, total] = await this.userRepository.findAndCount({
-      order: { createdAt: 'ASC' },
+      order: { createdAt: 'DESC' },
       take: limit,
       skip: skip,
-      where: { fullName: Like(`%${keyword}%`) },
+      where: { fullName: ILike(`%${keyword}%`) },
       select: {
         id: true, email: true, fullName: true, phone: true, gender: true, city: true, district: true, ward: true,
         birthYear: true, avatar: true, operatingStatus: true, createdAt: true
@@ -68,7 +68,13 @@ export class UserService {
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} user`;
+    const user = this.userRepository.findOne({
+      where: { id },
+    });
+    if (!user) {
+      throw new NotFoundException("User id is not found");
+    }
+    return user;
   }
 
   async updateProfile(id: number, updateUserDto: UpdateUserDto): Promise<any> {
@@ -146,6 +152,24 @@ export class UserService {
     await this.userRepository.save(user);
     return {
       message: 'Update role successfully',
+    };
+  }
+
+  async toggleActivateUser(userId: number, action: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (!user) throw new NotFoundException('User is not found');
+    if (action === 'activate') {
+      user.operatingStatus = true;
+    } else if (action === 'deactivate') {
+      user.operatingStatus = false;
+    } else {
+      throw new BadRequestException("Invalid action")
+    }
+    await this.userRepository.save(user);
+    return {
+      message: action === 'activate' ? 'Activate user successfully' : 'Deactivate user successfully',
     };
   }
 }

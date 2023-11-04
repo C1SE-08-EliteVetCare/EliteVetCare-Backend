@@ -38,6 +38,12 @@ export class PetCondition {
   @Column('text', { name: 'vet_advice', nullable: true })
   vetAdvice: string;
 
+  @Column('text', { name: 'recommended_medicines', nullable: true })
+  recommendedMedicines: string;
+
+  @Column('text', { name: 'recommended_meal', nullable: true })
+  recommendedMeal: string;
+
   @UpdateDateColumn({ name: 'date_update' })
   dateUpdate: string;
 

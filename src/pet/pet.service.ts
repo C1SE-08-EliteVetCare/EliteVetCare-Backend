@@ -8,9 +8,10 @@ import { UpdatePetDto } from './dto/update-pet.dto';
 import { CloudinaryService } from '../config/cloudinary/cloudinary.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Pet, PetCondition, PetTreatment } from "../entities";
-import { IsNull, Like, Repository } from "typeorm";
+import { IsNull, ILike, Repository } from "typeorm";
 import { FilterPetDto } from './dto/filter-pet.dto';
 import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
+import { UpdateVetAdviceDto } from "./dto/update-vet-advice.dto";
 
 @Injectable()
 export class PetService {
@@ -33,7 +34,7 @@ export class PetService {
       const folder = 'pet-avatar';
       const { url } = await this.cloudinaryService.uploadFile(file, folder);
 
-      await this.petRepository
+      const newPet = await this.petRepository
         .createQueryBuilder()
         .insert()
         .into(Pet)
@@ -46,6 +47,10 @@ export class PetService {
         ])
         .execute();
 
+      await this.petConRepository.save(this.petConRepository.create({
+        petId: newPet.raw[0].id
+      }))
+
       return {
         message: 'Create successfully',
       };
@@ -54,40 +59,7 @@ export class PetService {
     }
   }
 
-  async sendTreatment(ownerId: number, petId: number, clinicId: number) {
-    const pet = await this.petRepository.findOne({
-      where: { id: petId, ownerId },
-    });
-    if (!pet) {
-      throw new NotFoundException('You do not have a record for this pet');
-    }
-    const newTreatment = this.petTreatmentRepository.create({
-      petId,
-      clinicId,
-    });
-    await this.petTreatmentRepository.save(newTreatment);
-    return {
-      message: 'Send successfully',
-    };
-  }
 
-  async acceptTreatment(vetId: number, treatmentId: number) {
-    const currentDate = new Date();
-    const dateAccepted = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDay()}`;
-    const res = await this.petTreatmentRepository.update(
-      { id: treatmentId },
-      {
-        vetId,
-        dateAccepted,
-      },
-    );
-    if (res.affected <= 0) {
-      throw new BadRequestException('Has error when update');
-    }
-    return {
-      message: 'Accept successfully',
-    };
-  }
 
   async findAll(ownerId: number, query: FilterPetDto): Promise<any> {
     const limit = query.limit || 10;
@@ -99,7 +71,7 @@ export class PetService {
       order: { createdAt: 'DESC' },
       take: limit,
       skip: skip,
-      where: { ownerId, name: Like(`%${keyword}%`) },
+      where: { ownerId, name: ILike(`%${keyword}%`) },
     });
     const lastPage = Math.ceil(total / limit);
     const nextPage = page + 1 > lastPage ? null : page + 1;
@@ -114,10 +86,14 @@ export class PetService {
     };
   }
 
-  findOne(id: number, ownerId: number) {
-    return this.petRepository.findOne({
+  async findOne(id: number, ownerId: number) {
+    const pet = await this.petRepository.findOne({
       where: { id, ownerId },
     });
+    if (!pet) {
+      throw new NotFoundException("Pet id is not found");
+    }
+    return pet;
   }
 
   async update(
@@ -166,15 +142,19 @@ export class PetService {
 
   // Condition
   async getCondition(petId: number) {
-    const petCon = await this.petConRepository.findOne({
-      relations: { pet: true },
-      where: { petId },
-    });
-    if (!petCon) {
-      const newPetCon = this.petConRepository.create({ petId });
-      return await this.petConRepository.save(newPetCon);
+    try {
+      const petCon = await this.petConRepository.findOne({
+        relations: { pet: true },
+        where: { petId },
+      });
+      if (!petCon) {
+        const newPetCon = this.petConRepository.create({ petId });
+        return await this.petConRepository.save(newPetCon);
+      }
+      return petCon;
+    } catch (error) {
+      throw new BadRequestException("Has error when get condition")
     }
-    return petCon;
   }
 
   async updateCondition(
@@ -210,6 +190,41 @@ export class PetService {
   }
 
   // Vet future
+  async sendTreatment(ownerId: number, petId: number, clinicId: number) {
+    const pet = await this.petRepository.findOne({
+      where: { id: petId, ownerId },
+    });
+    if (!pet) {
+      throw new NotFoundException('You do not have a record for this pet');
+    }
+    const newTreatment = this.petTreatmentRepository.create({
+      petId,
+      clinicId,
+    });
+    await this.petTreatmentRepository.save(newTreatment);
+    return {
+      message: 'Send successfully',
+    };
+  }
+
+  async acceptTreatment(vetId: number, treatmentId: number) {
+    const currentDate = new Date();
+    const dateAccepted = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDay()}`;
+    const res = await this.petTreatmentRepository.update(
+      { id: treatmentId },
+      {
+        vetId,
+        dateAccepted,
+      },
+    );
+    if (res.affected <= 0) {
+      throw new BadRequestException('Has error when update');
+    }
+    return {
+      message: 'Accept successfully',
+    };
+  }
+
   async findAllTreatment(clinicId: number, query: FilterPetDto) {
     const limit = query.limit || 10;
     const page = query.page || 1;
@@ -218,10 +233,7 @@ export class PetService {
     const status = +query.status === 1 ? IsNull() : undefined
     const [res, total] = await this.petTreatmentRepository.findAndCount({
       order: { createdAt: 'DESC' },
-      where: [
-        // { clinicId, vetId: status },
-        { clinicId, vetId: status ,pet: { name: Like(`%${keyword}%`) } }
-      ],
+      where: { clinicId, vetId: status ,pet: { name: ILike(`%${keyword}%`) } },
       relations: {
         pet: {
           user: true,
@@ -258,6 +270,24 @@ export class PetService {
       throw new NotFoundException("Pet id is not found")
     }
     return petTreatmentData(res, true)
+  }
+
+  async updateVetAdvice(vetId: number, petId: number , updateVetAdviceDto: UpdateVetAdviceDto) {
+    const treatment = await this.petTreatmentRepository.findOne({
+      where: { petId, vetId }
+    })
+    if (!treatment) {
+      throw new NotFoundException("No treatment records exist for this pet")
+    }
+    const res = await this.petConRepository.update({ petId }, {
+      ...updateVetAdviceDto
+    })
+    if (res.affected <= 0) {
+      throw new BadRequestException("Has error when update")
+    }
+    return {
+      message: "Update advice successfully"
+    }
   }
 }
 

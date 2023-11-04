@@ -6,7 +6,7 @@ import {
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { Appointment, VetAppointment } from '../entities';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { ILike, Repository } from "typeorm";
 import { FilterAppointmentDto } from './dto/filter-appointment.dto';
 
 @Injectable()
@@ -48,7 +48,7 @@ export class AppointmentService {
       },
       take: limit,
       skip: skip,
-      where: { ownerId, servicePackage: Like(`%${keyword}%`) },
+      where: { ownerId, servicePackage: ILike(`%${keyword}%`) },
     });
     const lastPage = Math.ceil(total / limit);
     const nextPage = page + 1 > lastPage ? null : page + 1;
@@ -90,7 +90,7 @@ export class AppointmentService {
       },
       take: limit,
       skip: skip,
-      where: { clinicId, servicePackage: Like(`%${keyword}%`) },
+      where: { clinicId, servicePackage: ILike(`%${keyword}%`) },
     });
     const lastPage = Math.ceil(total / limit);
     const nextPage = page + 1 > lastPage ? null : page + 1;

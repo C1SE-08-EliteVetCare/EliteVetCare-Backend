@@ -58,6 +58,13 @@ export class UserController {
     return this.userService.updateProfile(id, updateUserDto);
   }
 
+  @UseGuards(new RoleGuard(['Admin']))
+  @UseGuards(AuthGuard('jwt'))
+  @Post('toggle-active')
+  toggleActivateUser(@Query('userId') userId: number, @Query('action') action: string) {
+    return this.userService.toggleActivateUser(userId, action)
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Post('/upload-avatar')
   @HttpCode(HttpStatus.OK)

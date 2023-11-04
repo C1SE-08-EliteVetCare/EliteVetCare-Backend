@@ -17,10 +17,10 @@ export class Feedback {
   userId: number;
 
   @Column('varchar', { length: 100 })
-  subject: number;
+  subject: string;
 
   @Column('text')
-  content: number;
+  content: string;
 
   @Column()
   rating: number;
