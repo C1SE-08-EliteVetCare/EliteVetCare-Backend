@@ -36,8 +36,8 @@ export class FeedbackService {
     const limit = query.limit || 10;
     const page = query.page || 1;
     const skip = (page - 1) * limit;
-    const keyword = query.search || undefined;
-    const rating = query.rating || undefined;
+    // const keyword = query.search || undefined;
+    // const rating = query.rating || undefined;
     const [res, total] = await this.feedbackRepository.findAndCount({
       relations: {
         user: true,
@@ -50,11 +50,11 @@ export class FeedbackService {
         createdAt: true,
         user: { id: true, email: true, fullName: true, phone: true },
       },
-      where: [
-        { subject: ILike(`%${keyword}%`) },
-        { user: { fullName: ILike(`%${keyword}`) } },
-        { rating: Equal(rating) },
-      ],
+      where: {
+        subject: query.search && ILike(`%${query.search}%`),
+        user: { fullName: query.search && ILike(`%${query.search}`) },
+        rating: query.rating && Equal(query.rating),
+      },
       order: { createdAt: 'DESC' },
       take: limit,
       skip: skip,
