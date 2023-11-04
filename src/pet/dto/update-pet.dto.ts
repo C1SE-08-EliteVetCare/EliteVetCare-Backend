@@ -1,4 +1,5 @@
 import { IsOptional, IsString } from "class-validator";
+import { Type } from "class-transformer";
 
 export class UpdatePetDto {
   @IsOptional()
@@ -17,10 +18,11 @@ export class UpdatePetDto {
   @IsString()
   gender: string;
 
+  @Type(() => Number)
   @IsOptional()
-  @IsString()
-  age: string;
+  age: number;
 
+  @Type(() => Number)
   @IsOptional()
   weight: number;
 

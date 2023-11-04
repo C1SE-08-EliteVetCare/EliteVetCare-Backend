@@ -29,8 +29,8 @@ export class Pet {
   @Column('char', { length: 3 })
   gender: string;
 
-  @Column('varchar', { length: 20 })
-  age: string;
+  @Column('int')
+  age: number;
 
   @Column('float')
   weight: number;

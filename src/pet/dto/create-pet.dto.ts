@@ -18,9 +18,9 @@ export class CreatePetDto {
   @IsNotEmpty()
   gender: string;
 
-  @IsString()
+  @Type(() => Number)
   @IsNotEmpty()
-  age: string;
+  age: number;
 
   @Type(() => Number)
   @IsNotEmpty()
