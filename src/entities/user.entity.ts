@@ -67,6 +67,9 @@ export class User {
   @Column({ name: 'clinic_id', nullable: true })
   clinicId: number;
 
+  @Column({ name: 'token_google', nullable: true })
+  tokenGoogle: string;
+
   @CreateDateColumn({ name: 'created_at', nullable: true })
   createdAt: Date;
 

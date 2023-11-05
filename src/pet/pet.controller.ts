@@ -24,11 +24,9 @@ import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { RoleGuard } from '../auth/guard/role.guard';
 import { GetUser } from '../user/decorator/user.decorator';
-import { IsOptional } from 'class-validator';
 import { FilterPetDto } from './dto/filter-pet.dto';
 import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
 import { Clinic } from "../entities";
-import { FilterAppointmentDto } from "../appointment/dto/filter-appointment.dto";
 import { UpdateVetAdviceDto } from "./dto/update-vet-advice.dto";
 
 @Controller('pet')

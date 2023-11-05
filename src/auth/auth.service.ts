@@ -112,32 +112,22 @@ export class AuthService {
     };
   }
 
-  async googleAuthRedirect(
-    email: string,
-    firstName: string,
-    lastName: string,
-    picture: string,
+  async googleLoginSuccess(
+    tokenGoogle: string
   ) {
+    console.log(tokenGoogle);
     const user = await this.userRepository.findOne({
-      where: { email: email, operatingStatus: true },
+      where: { tokenGoogle: tokenGoogle },
     });
-
+    console.log(user.tokenGoogle);
     if (!user) {
-      const newUser = this.userRepository.create({
-        email: email,
-        fullName: `${firstName} ${lastName}`,
-        password: '',
-        avatar: picture,
-        phone: '',
-      });
-      await this.userRepository.save(newUser);
-
-      const token = await this.generateJwtToken(newUser.id, newUser.email);
-      return {
-        message: 'Create new user and signed in',
-        ...token,
-      };
+      throw new NotFoundException("User is not found")
     }
+
+    if (user && user.operatingStatus === false) {
+      throw new BadRequestException("The account has been locked")
+    }
+
     const token = await this.generateJwtToken(user.id, user.email);
     return {
       message: 'Login successfully',

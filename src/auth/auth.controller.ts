@@ -7,7 +7,8 @@ import {
   Post,
   Req,
   UnauthorizedException,
-  UseGuards, UsePipes, ValidationPipe
+  UseGuards,
+  Res
 } from "@nestjs/common";
 import { Request } from 'express';
 import { AuthService } from './auth.service';
@@ -21,6 +22,11 @@ import {
 import { GetUser } from '../user/decorator/user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from "../entities";
+import {Response} from 'express'
+import { config } from 'dotenv';
+import * as process from 'process';
+
+config();
 
 @Controller('auth')
 export class AuthController {
@@ -50,20 +56,21 @@ export class AuthController {
     if (!req.user) throw new UnauthorizedException('Login failed from google');
   }
 
-  @Get('google/redirect')
+  @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   @HttpCode(HttpStatus.OK)
   googleAuthRedirect(
-    @GetUser('email') email: string,
-    @GetUser('firstName') firstName: string,
-    @GetUser('lastName') lastName: string,
-    @GetUser('picture') picture: string,
+    @GetUser('tokenGoogle') token: string,
+    @Res() res: Response
   ) {
-    return this.authService.googleAuthRedirect(
-      email,
-      firstName,
-      lastName,
-      picture,
+    res.redirect(`${process.env.CLIENT_URL}/login-success/${token}`)
+  }
+
+  @Post('google/login-success')
+  @HttpCode(HttpStatus.OK)
+  googleLoginSuccess(@Body('tokenGoogle') tokenGoogle: string) {
+    return this.authService.googleLoginSuccess(
+      tokenGoogle
     );
   }
 

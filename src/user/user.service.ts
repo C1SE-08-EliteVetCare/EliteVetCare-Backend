@@ -22,6 +22,7 @@ export class UserService {
   getCurrentUser(user: User) {
     return {
       id: user.id,
+      email: user.email,
       fullName: user.fullName,
       gender: user.gender,
       city: user.city,
