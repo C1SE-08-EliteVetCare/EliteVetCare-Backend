@@ -1,11 +1,11 @@
 import {
   BadRequestException,
-  ForbiddenException,
+  ForbiddenException, HttpStatus,
   Inject,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+  UnauthorizedException
+} from "@nestjs/common";
 import {
   ForgotDto,
   LoginDto,
@@ -23,6 +23,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../entities';
 import { Repository } from 'typeorm';
 import { MailService } from '../config/mail/mail.service';
+import {Response} from "express";
 
 @Injectable()
 export class AuthService {
@@ -129,6 +130,7 @@ export class AuthService {
     }
 
     const token = await this.generateJwtToken(user.id, user.email);
+    await this.updateRtHash(user.id, token.refreshToken);
     return {
       message: 'Login successfully',
       ...token,
@@ -265,5 +267,36 @@ export class AuthService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async responseToken(body: any, res: Response) {
+    const user = await this.userRepository.findOne({
+      where: { email: body.email }
+    })
+    if (!user) {
+      const hashPassword = await argon.hash(body.password)
+
+      const newUser = this.userRepository.create({
+        email: body.email,
+        fullName: body.fullName,
+        password: hashPassword,
+        phone: '',
+        operatingStatus: true
+      });
+      await this.userRepository.save(newUser);
+
+      const token = await this.generateJwtToken(newUser.id, newUser.email);
+      await this.updateRtHash(newUser.id, token.refreshToken);
+      return res.status(HttpStatus.CREATED).json({
+        message: "Create new account successfully",
+        ...token
+      })
+    }
+    const token = await this.generateJwtToken(user.id, user.email);
+    // await this.updateRtHash(user.id, token.refreshToken);
+    return res.status(HttpStatus.OK).json({
+      message: "Login successfully",
+      ...token
+    })
   }
 }

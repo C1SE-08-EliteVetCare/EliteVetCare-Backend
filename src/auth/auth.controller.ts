@@ -74,6 +74,11 @@ export class AuthController {
     );
   }
 
+  @Post('google/response-token')
+  responseToken(@Body() body: any, @Res() res: Response) {
+    return this.authService.responseToken(body, res)
+  }
+
   @Post('refresh-token')
   @UseGuards(AuthGuard('jwt-refresh'))
   refreshToken(

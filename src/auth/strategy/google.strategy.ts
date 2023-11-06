@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../../entities';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto'
+import * as argon from 'argon2';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -29,6 +30,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     done: VerifyCallback,
   ): Promise<any> {
     const tokenGoogle = crypto.randomBytes(32).toString('hex')
+
     const { name, emails, photos } = profile;
     const user = {
       email: emails[0].value,
@@ -42,15 +44,19 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       where: {email: user.email}
     })
     if (!res) {
+      const randomPassword = Math.random().toString(36).slice(-8)
+      const hashPassword = await argon.hash(randomPassword)
+
       const newUser = this.userRepository.create({
-        email: emails[0].value,
+        email: user.email,
         fullName: `${user.firstName} ${user.lastName}`,
-        password: '',
+        password: hashPassword,
         avatar: user.picture,
         phone: '',
         tokenGoogle: tokenGoogle,
         operatingStatus: true
       });
+
       await this.userRepository.save(newUser);
     } else {
       res.tokenGoogle = tokenGoogle
