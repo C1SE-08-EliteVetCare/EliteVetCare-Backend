@@ -15,10 +15,10 @@ import { AuthService } from './auth.service';
 import {
   ForgotDto,
   LoginDto,
-  RegisterDto,
+  RegisterDto, ResendOtpDto,
   ResetDto,
-  VerifyDto,
-} from './dto/auth.dto';
+  VerifyDto
+} from "./dto/auth.dto";
 import { GetUser } from '../user/decorator/user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from "../entities";
@@ -97,6 +97,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   resetPassword(@Body() dto: ResetDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @Post('resend-otp')
+  @HttpCode(HttpStatus.OK)
+  resentOtp(@Body() resendOtpDto: ResendOtpDto) {
+    return this.authService.resendOtp(resendOtpDto)
   }
 
   @Post('logout')

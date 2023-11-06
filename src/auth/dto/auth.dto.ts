@@ -1,4 +1,5 @@
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { Type } from "class-transformer";
 
 export class RegisterDto {
   @IsString()
@@ -37,6 +38,16 @@ export class VerifyDto {
 
   @IsNotEmpty()
   otp: number;
+}
+
+export class ResendOtpDto {
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @Type(() => Number)
+  @IsNotEmpty()
+  type: number;
 }
 
 export class ForgotDto {

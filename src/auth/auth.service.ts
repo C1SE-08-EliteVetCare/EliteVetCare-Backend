@@ -9,10 +9,10 @@ import {
 import {
   ForgotDto,
   LoginDto,
-  RegisterDto,
+  RegisterDto, ResendOtpDto,
   ResetDto,
-  VerifyDto,
-} from './dto/auth.dto';
+  VerifyDto
+} from "./dto/auth.dto";
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Cache } from 'cache-manager';
@@ -57,7 +57,7 @@ export class AuthService {
     // Verify email and save into cache
     // const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otp = crypto.randomInt(100000, 999999).toString();
-    await this.cacheManager.set('verify_otp', otp, 300000);
+    await this.cacheManager.set(`verify_otp-${newUser.id}`, otp, 300000);
 
     await this.mailService.sendEmailConfirmation(registerDto.email, otp);
 
@@ -67,25 +67,26 @@ export class AuthService {
   }
 
   async verifyEmail(verifyDto: VerifyDto) {
-    const otp = await this.cacheManager.get('verify_otp');
+    const user = await this.userRepository.findOne({
+      where: {email: verifyDto.email}
+    })
+    if (!user) {
+      throw new NotFoundException(
+        'The email sent does not match the registered email',
+      );
+    }
+
+    const otp = await this.cacheManager.get(`verify_otp-${user.id}`);
     if (!otp) {
       throw new BadRequestException('OTP has expired');
     }
     if (otp !== verifyDto.otp) {
       throw new BadRequestException('Invalid OTP');
     }
-    const res = await this.userRepository
-      .createQueryBuilder()
-      .update(User)
-      .set({ operatingStatus: true })
-      .where('email = :email', { email: verifyDto.email })
-      .execute();
-    if (res.affected <= 0) {
-      throw new NotFoundException(
-        'The email sent does not match the registered email',
-      );
-    }
-    await this.cacheManager.del('user_otp');
+    user.operatingStatus = true;
+    await this.userRepository.save(user)
+
+    await this.cacheManager.del(`verify_otp-${user.id}`);
     return {
       message: 'Success verified',
     };
@@ -151,7 +152,7 @@ export class AuthService {
       otp,
     );
 
-    await this.cacheManager.set('reset_otp', otp, 300000);
+    await this.cacheManager.set(`reset_otp-${user.id}`, otp, 300000);
     return {
       message: 'Send to your email successfully',
     };
@@ -161,25 +162,62 @@ export class AuthService {
     // Hash the new password
     const hash = await argon.hash(resetDto.password);
 
+    // Get user
+    const user = await this.userRepository.findOne({
+      where: {email: resetDto.email}
+    })
+    if (!user) {
+      throw new NotFoundException(
+        'The email sent does not match the registered email',
+      );
+    }
+
     // Get the OTP from cache
-    const otp = await this.cacheManager.get('reset_otp');
+    const otp = await this.cacheManager.get(`reset_otp-${user.id}`);
 
     // Check if OTP is expired or invalid
-    if (!otp || otp !== resetDto.otp) {
-      throw new BadRequestException('OTP has expired or Invalid OTP');
+    if (!otp) {
+      throw new BadRequestException('OTP has expired');
+    }
+    if (otp !== resetDto.otp) {
+      throw new BadRequestException('Invalid OTP');
     }
 
     // Update the user's password in the config
-    await this.userRepository
-      .createQueryBuilder()
-      .update(User)
-      .set({ password: hash })
-      .where('email= :email', { email: resetDto.email })
-      .execute();
+    user.password = hash
+    await this.userRepository.save(user)
 
-    await this.cacheManager.del('reset_otp');
+    await this.cacheManager.del(`reset_otp-${user.id}`);
     return {
       message: 'Reset password successfully',
+    };
+  }
+
+  async resendOtp(resendOtp: ResendOtpDto) {
+    const user = await this.userRepository.findOne({
+      where: { email: resendOtp.email },
+    });
+    if (!user) {
+      throw new BadRequestException("Email hasn't been registered");
+    }
+    const otp = crypto.randomInt(100000, 999999).toString();
+    if (resendOtp.type === 1) {
+      await this.mailService.sendEmailConfirmation(
+        resendOtp.email,
+        otp,
+      );
+      await this.cacheManager.set(`verify_otp-${user.id}`, otp, 300000);
+    } else {
+      await this.mailService.sendEmailResetPassword(
+        resendOtp.email,
+        user.fullName,
+        otp,
+      );
+      await this.cacheManager.set(`reset_otp-${user.id}`, otp, 300000);
+    }
+
+    return {
+      message: 'Send to your email successfully',
     };
   }
 
@@ -300,3 +338,5 @@ export class AuthService {
     })
   }
 }
+
+
