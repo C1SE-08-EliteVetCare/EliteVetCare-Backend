@@ -293,7 +293,7 @@ export class AuthService {
       })
     }
     const token = await this.generateJwtToken(user.id, user.email);
-    // await this.updateRtHash(user.id, token.refreshToken);
+    await this.updateRtHash(user.id, token.refreshToken);
     return res.status(HttpStatus.OK).json({
       message: "Login successfully",
       ...token
