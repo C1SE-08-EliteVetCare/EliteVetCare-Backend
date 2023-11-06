@@ -8,10 +8,10 @@ import { UpdatePetDto } from './dto/update-pet.dto';
 import { CloudinaryService } from '../config/cloudinary/cloudinary.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Pet, PetCondition, PetTreatment } from "../entities";
-import { IsNull, ILike, Repository } from "typeorm";
+import { IsNull, ILike, Repository } from 'typeorm';
 import { FilterPetDto } from './dto/filter-pet.dto';
 import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
-import { UpdateVetAdviceDto } from "./dto/update-vet-advice.dto";
+import { UpdateVetAdviceDto } from './dto/update-vet-advice.dto';
 
 @Injectable()
 export class PetService {
@@ -47,10 +47,6 @@ export class PetService {
         ])
         .execute();
 
-      await this.petConRepository.save(this.petConRepository.create({
-        petId: newPet.raw[0].id
-      }))
-
       return {
         message: 'Create successfully',
       };
@@ -58,8 +54,6 @@ export class PetService {
       throw new BadRequestException('Has error when create');
     }
   }
-
-
 
   async findAll(ownerId: number, query: FilterPetDto): Promise<any> {
     const limit = query.limit || 10;
@@ -91,7 +85,7 @@ export class PetService {
       where: { id, ownerId },
     });
     if (!pet) {
-      throw new NotFoundException("Pet id is not found");
+      throw new NotFoundException('Pet id is not found');
     }
     return pet;
   }
@@ -143,17 +137,35 @@ export class PetService {
   // Condition
   async getCondition(petId: number) {
     try {
-      const petCon = await this.petConRepository.findOne({
+      const petCon = await this.petConRepository.find({
         relations: { pet: true },
+        order: {dateUpdate: "DESC"},
+        take: 30,
         where: { petId },
+        select: {
+          id: true,
+          portion: true,
+          weight: true,
+          meal: true,
+          manifestation: true,
+          conditionOfDefecation: true,
+          actualImg: true,
+          vetAdvice: true,
+          recommendedMedicines: true,
+          recommendedMeal: true,
+          dateUpdate: true
+        },
       });
       if (!petCon) {
         const newPetCon = this.petConRepository.create({ petId });
         return await this.petConRepository.save(newPetCon);
       }
-      return petCon;
+      return {
+        petInfo: petCon[0].pet,
+        data: petConData(petCon)
+      };
     } catch (error) {
-      throw new BadRequestException("Has error when get condition")
+      throw new BadRequestException('Has error when get condition');
     }
   }
 
@@ -162,27 +174,22 @@ export class PetService {
     updatePetConditionDto: UpdatePetConditionDto,
     files: Array<Express.Multer.File>,
   ) {
-    const petCon = await this.petConRepository.findOne({
-      where: { petId },
-    });
+
     const folder = 'pet-condition';
     let actualImg = '';
-    if (petCon) {
-      const { url } =
-        files.length > 0 &&
-        (await this.cloudinaryService.uploadFile(files[0], folder));
-      actualImg = files.length > 0 ? url : '';
 
-      await this.petConRepository.update(
-        { petId },
-        {
-          ...updatePetConditionDto,
-          actualImg,
-        },
-      );
-    } else {
-      throw new BadRequestException('Invalid pet id');
-    }
+    const { url } =
+      files.length > 0 &&
+      (await this.cloudinaryService.uploadFile(files[0], folder));
+    actualImg = files.length > 0 ? url : '';
+
+    const newPetCon = this.petConRepository.create({
+      ...updatePetConditionDto,
+      actualImg,
+      petId,
+    });
+    await this.petConRepository.save(newPetCon);
+
 
     return {
       message: 'Update successfully',
@@ -230,15 +237,15 @@ export class PetService {
     const page = query.page || 1;
     const skip = (page - 1) * limit;
     const keyword = query.search || '';
-    const status = +query.status === 1 ? IsNull() : undefined
+    const status = +query.status === 1 ? IsNull() : undefined;
     const [res, total] = await this.petTreatmentRepository.findAndCount({
       order: { createdAt: 'DESC' },
-      where: { clinicId, vetId: status ,pet: { name: ILike(`%${keyword}%`) } },
+      where: { clinicId, vetId: status, pet: { name: ILike(`%${keyword}%`) } },
       relations: {
         pet: {
           user: true,
         },
-        user: true
+        user: true,
       },
       take: limit,
       skip: skip,
@@ -263,31 +270,42 @@ export class PetService {
         pet: {
           user: true,
         },
-        user: true
+        user: true,
       },
     });
     if (!res) {
-      throw new NotFoundException("Pet id is not found")
+      throw new NotFoundException('Pet id is not found');
     }
-    return petTreatmentData(res, true)
+    return petTreatmentData(res, true);
   }
 
-  async updateVetAdvice(vetId: number, petId: number , updateVetAdviceDto: UpdateVetAdviceDto) {
+  async updateVetAdvice(
+    vetId: number,
+    petId: number,
+    updateVetAdviceDto: UpdateVetAdviceDto,
+  ) {
     const treatment = await this.petTreatmentRepository.findOne({
-      where: { petId, vetId }
-    })
+      where: { petId, vetId },
+    });
+
     if (!treatment) {
-      throw new NotFoundException("No treatment records exist for this pet")
+      throw new NotFoundException('No treatment records exist for this pet');
     }
-    const res = await this.petConRepository.update({ petId }, {
-      ...updateVetAdviceDto
-    })
+
+    // Update the newest record
+    const res = await this.petConRepository
+      .createQueryBuilder()
+      .update(PetCondition)
+      .set({ ...updateVetAdviceDto })
+      .where("id = (SELECT id FROM pet_condition WHERE petId = :petId ORDER BY id DESC LIMIT 1)", { petId })
+      .execute();
+
     if (res.affected <= 0) {
-      throw new BadRequestException("Has error when update")
+      throw new BadRequestException('Has error when update');
     }
     return {
-      message: "Update advice successfully"
-    }
+      message: 'Update advice successfully',
+    };
   }
 }
 
@@ -295,9 +313,7 @@ const petTreatmentData = (res: any, isObject: boolean = false) => {
   if (isObject) {
     return transformData(res);
   }
-  return res.map((petTreatment: PetTreatment) =>
-    transformData(petTreatment),
-  );
+  return res.map((petTreatment: PetTreatment) => transformData(petTreatment));
 };
 
 const transformData = (petTreatment: PetTreatment) => {
@@ -320,14 +336,39 @@ const transformData = (petTreatment: PetTreatment) => {
         id: petTreatment?.pet?.user?.id,
         email: petTreatment?.pet?.user?.email,
         fullName: petTreatment?.pet?.user?.fullName,
-        phone: petTreatment?.pet?.user?.phone
+        phone: petTreatment?.pet?.user?.phone,
       },
     },
     vet: {
       id: petTreatment?.user?.id,
       email: petTreatment?.user?.email,
       fullName: petTreatment?.user?.fullName,
-      phone: petTreatment?.user?.phone
-    }
+      phone: petTreatment?.user?.phone,
+    },
+  };
+};
+
+const petConData = (res: any, isObject: boolean = false) => {
+  if (isObject) {
+    return transformPetCon(res);
+  }
+  return res.map((petCon: PetCondition) =>
+    transformPetCon(petCon),
+  );
+};
+
+const transformPetCon = (petCon: PetCondition) => {
+  return {
+    id: petCon.id,
+    portion: petCon.id,
+    weight: petCon.weight,
+    meal: petCon.meal,
+    manifestation: petCon.manifestation,
+    conditionOfDefecation: petCon.conditionOfDefecation,
+    actualImg: petCon.actualImg,
+    vetAdvice: petCon.vetAdvice,
+    recommendedMedicines: petCon.recommendedMedicines,
+    recommendedMeal: petCon.recommendedMeal,
+    dateUpdate: petCon.dateUpdate,
   }
 }

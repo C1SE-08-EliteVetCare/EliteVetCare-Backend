@@ -44,7 +44,7 @@ export class PetCondition {
   @Column('text', { name: 'recommended_meal', nullable: true })
   recommendedMeal: string;
 
-  @UpdateDateColumn({ name: 'date_update' })
+  @UpdateDateColumn({type: 'date' ,name: 'date_update' })
   dateUpdate: string;
 
   @ManyToOne(() => Pet, (pet) => pet.petConditions)
