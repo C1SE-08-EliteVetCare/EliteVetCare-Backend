@@ -82,9 +82,10 @@ export class AuthController {
   @Post('refresh-token')
   @UseGuards(AuthGuard('jwt-refresh'))
   refreshToken(
+    @GetUser('sub') userId: number,
     @GetUser('refreshToken') refreshToken: string,
   ) {
-    return this.authService.refreshToken(refreshToken);
+    return this.authService.refreshToken(userId, refreshToken);
   }
 
   @Post('forgot-password')

@@ -237,21 +237,18 @@ export class AuthService {
   }
 
   async refreshToken(
+    userId: number,
     refreshToken: string,
   ): Promise<{ accessToken: string }> {
-    const salt = Buffer.from(
-      this.configService.get<string>('SALT_KEY'),
-      'base64',
-    );
-    const hashedRt = await argon.hash(refreshToken, { salt });
     const user = await this.userRepository.findOne({
-      where: { hashedRt },
+      where: { id: userId },
     });
+    if (!user) {
+      throw new NotFoundException("User is not found")
+    }
 
-    if (!user || !user.hashedRt) throw new ForbiddenException('Access Denied');
-
-    const rtMatches = await argon.verify(user.hashedRt, refreshToken);
-    if (!rtMatches) throw new ForbiddenException('Access Denied');
+    const matchedRt = await argon.verify(user.hashedRt, refreshToken)
+    if (!matchedRt) throw new ForbiddenException('Access Denied');
 
     const newJwtAt = await this.jwt.signAsync(
       { sub: user.id, email: user.email },
