@@ -222,12 +222,7 @@ export class AuthService {
   }
 
   async updateRtHash(userId: number, refreshToken: string) {
-    const salt = Buffer.from(
-      this.configService.get<string>('SALT_KEY'),
-      'base64',
-    );
-
-    const hashedRt = await argon.hash(refreshToken, { salt });
+    const hashedRt = await argon.hash(refreshToken);
     await this.userRepository
       .createQueryBuilder()
       .update(User)
