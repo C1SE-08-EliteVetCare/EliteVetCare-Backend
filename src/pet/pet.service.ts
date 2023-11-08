@@ -139,7 +139,7 @@ export class PetService {
     try {
       const petCon = await this.petConRepository.find({
         relations: { pet: true },
-        order: {dateUpdate: "DESC"},
+        order: {id: "DESC"},
         take: 30,
         where: { petId },
         select: {
@@ -360,7 +360,7 @@ const petConData = (res: any, isObject: boolean = false) => {
 const transformPetCon = (petCon: PetCondition) => {
   return {
     id: petCon.id,
-    portion: petCon.id,
+    portion: petCon.portion,
     weight: petCon.weight,
     meal: petCon.meal,
     manifestation: petCon.manifestation,
