@@ -16,6 +16,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from '../db/data-source';
 import { CloudinaryModule } from './config/cloudinary/cloudinary.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { ClinicModule } from './clinic/clinic.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { FeedbackModule } from './feedback/feedback.module';
     AppointmentModule,
     CloudinaryModule,
     FeedbackModule,
+    ClinicModule,
   ],
   controllers: [AppController],
   providers: [AppService],
