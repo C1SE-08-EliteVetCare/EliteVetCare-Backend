@@ -6,7 +6,7 @@ import {
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { Appointment, VetAppointment } from '../entities';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from "typeorm";
+import { ILike, Repository } from 'typeorm';
 import { FilterAppointmentDto } from './dto/filter-appointment.dto';
 
 @Injectable()
@@ -32,10 +32,11 @@ export class AppointmentService {
   }
 
   async findAll(ownerId: number, query: FilterAppointmentDto) {
-    const limit = query.limit || 10;
+    const limit = query.limit || null;
     const page = query.page || 1;
     const skip = (page - 1) * limit;
     const keyword = query.search || '';
+    const status = query.status || undefined;
 
     const [res, total] = await this.appointRepository.findAndCount({
       order: { createdAt: 'DESC' },
@@ -48,12 +49,18 @@ export class AppointmentService {
       },
       take: limit,
       skip: skip,
-      where: { ownerId, servicePackage: ILike(`%${keyword}%`) },
+      where: { ownerId, servicePackage: ILike(`%${keyword}%`), status },
     });
     const lastPage = Math.ceil(total / limit);
     const nextPage = page + 1 > lastPage ? null : page + 1;
     const prevPage = page - 1 < 1 ? null : page - 1;
     return {
+      petOwner: {
+        ownerId: res[0]?.user?.id,
+        fullName: res[0]?.user?.fullName,
+        email: res[0]?.user?.email,
+        phone: res[0]?.user?.phone,
+      },
       data: appointmentData(res),
       total,
       currentPage: page,
@@ -67,7 +74,7 @@ export class AppointmentService {
     const res = await this.appointRepository.findOne({
       relations: {
         vetAppointment: {
-          user: true
+          user: true,
         },
         clinic: true,
       },
@@ -78,10 +85,11 @@ export class AppointmentService {
 
   // Vet feature
   async findAllForVet(clinicId: number, query: FilterAppointmentDto) {
-    const limit = query.limit || 10;
+    const limit = query.limit || null;
     const page = query.page || 1;
     const skip = (page - 1) * limit;
     const keyword = query.search || '';
+    const status = query.status || undefined;
 
     const [res, total] = await this.appointRepository.findAndCount({
       order: { createdAt: 'DESC' },
@@ -90,7 +98,7 @@ export class AppointmentService {
       },
       take: limit,
       skip: skip,
-      where: { clinicId, servicePackage: ILike(`%${keyword}%`) },
+      where: { clinicId, servicePackage: ILike(`%${keyword}%`), status },
     });
     const lastPage = Math.ceil(total / limit);
     const nextPage = page + 1 > lastPage ? null : page + 1;
@@ -113,9 +121,9 @@ export class AppointmentService {
       where: { id: id },
     });
     if (!res) {
-      throw new NotFoundException("Appointment id is not found")
+      throw new NotFoundException('Appointment id is not found');
     }
-    return appointmentData(res, true)
+    return appointmentData(res, true);
   }
 
   async updateStatus(id: number, vetId: number, action: number) {
@@ -125,7 +133,6 @@ export class AppointmentService {
       (await this.vetAppointRepository.save(
         this.vetAppointRepository.create({ vetId }),
       ));
-    console.log(newAccept);
 
     // Update status and acceptedId
     const appointUpdated = await this.appointRepository.update(
@@ -164,12 +171,6 @@ const transformAppointment = (appointment: Appointment) => {
     acceptedId: appointment.acceptedId,
     createdAt: appointment.createdAt,
     updatedAt: appointment.updatedAt,
-    petOwner: {
-      ownerId: appointment?.user?.id,
-      fullName: appointment?.user?.fullName,
-      email: appointment?.user?.email,
-      phone: appointment?.user?.phone,
-    },
     vetAppointment: {
       vetId: appointment.vetAppointment?.user?.id,
       fullName: appointment.vetAppointment?.user?.fullName,

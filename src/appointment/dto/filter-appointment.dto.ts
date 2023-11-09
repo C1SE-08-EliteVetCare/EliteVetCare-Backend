@@ -12,4 +12,8 @@ export class FilterAppointmentDto {
 
   @IsOptional()
   search: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  status: number;
 }
