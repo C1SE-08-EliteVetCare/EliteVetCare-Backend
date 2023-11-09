@@ -64,8 +64,8 @@ export class AppointmentController {
   updateStatus(
     @Param('id') id: string,
     @GetUser('id') vetId: number,
-    @Body('status') status: string,
+    @Body('action') action: string,
   ) {
-    return this.appointmentService.updateStatus(+id, vetId, +status);
+    return this.appointmentService.updateStatus(+id, vetId, +action);
   }
 }

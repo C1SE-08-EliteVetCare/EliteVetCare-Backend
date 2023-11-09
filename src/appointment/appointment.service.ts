@@ -23,7 +23,7 @@ export class AppointmentService {
       const newAppoint = this.appointRepository.create({
         ownerId,
         ...createAppointmentDto,
-        status: 'Đang xử lý',
+        status: 1,
       });
       return this.appointRepository.save(newAppoint);
     } catch (error) {
@@ -118,20 +118,21 @@ export class AppointmentService {
     return appointmentData(res, true)
   }
 
-  async updateStatus(id: number, vetId: number, status: number) {
+  async updateStatus(id: number, vetId: number, action: number) {
     // Create new record to accept appointment (include: id of vet accepted)
     const newAccept =
-      status === 1 &&
+      action === 1 &&
       (await this.vetAppointRepository.save(
         this.vetAppointRepository.create({ vetId }),
       ));
+    console.log(newAccept);
 
     // Update status and acceptedId
     const appointUpdated = await this.appointRepository.update(
       { id },
       {
-        status: status === 1 ? 'Đã nhận' : 'Bị từ chối',
-        acceptedId: status === 1 ? newAccept.id : null,
+        status: action === 1 ? 2 : 3,
+        acceptedId: action === 1 ? newAccept.id : null,
       },
     );
 

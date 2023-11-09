@@ -30,8 +30,8 @@ export class Appointment {
   @Column({ name: 'clinic_id' })
   clinicId: number;
 
-  @Column('varchar', { length: 20 })
-  status: string;
+  @Column('int')
+  status: number;
 
   @Column({ name: 'accepted_id', nullable: true })
   acceptedId: number;
