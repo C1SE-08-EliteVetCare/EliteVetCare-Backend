@@ -27,6 +27,7 @@ export class UserService {
       gender: user.gender,
       city: user.city,
       district: user.district,
+      ward: user.ward,
       streetAddress: user.streetAddress,
       birthYear: user.birthYear,
       avatar: user.avatar,
