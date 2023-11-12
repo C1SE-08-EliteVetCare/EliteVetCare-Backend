@@ -7,7 +7,7 @@ import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { CloudinaryService } from '../config/cloudinary/cloudinary.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Pet, PetCondition, PetTreatment } from "../entities";
+import { Pet, PetCondition, PetTreatment } from '../entities';
 import { IsNull, ILike, Repository } from 'typeorm';
 import { FilterPetDto } from './dto/filter-pet.dto';
 import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
@@ -137,32 +137,32 @@ export class PetService {
   // Condition
   async getCondition(petId: number) {
     try {
-      const petCon = await this.petConRepository.find({
-        relations: { pet: true },
-        order: {id: "DESC"},
-        take: 30,
-        where: { petId },
-        select: {
-          id: true,
-          portion: true,
-          weight: true,
-          meal: true,
-          manifestation: true,
-          conditionOfDefecation: true,
-          actualImg: true,
-          vetAdvice: true,
-          recommendedMedicines: true,
-          recommendedMeal: true,
-          dateUpdate: true
-        },
-      });
-      if (!petCon) {
-        const newPetCon = this.petConRepository.create({ petId });
-        return await this.petConRepository.save(newPetCon);
-      }
+      const [petProfile, petCon] = await Promise.all([
+        this.petRepository.findOne({
+          where: { id: petId },
+        }),
+        this.petConRepository.find({
+          order: { id: 'DESC' },
+          take: 30,
+          where: { petId },
+          select: {
+            id: true,
+            portion: true,
+            weight: true,
+            meal: true,
+            manifestation: true,
+            conditionOfDefecation: true,
+            actualImg: true,
+            vetAdvice: true,
+            recommendedMedicines: true,
+            recommendedMeal: true,
+            dateUpdate: true,
+          },
+        }),
+      ]);
       return {
-        petInfo: petCon[0].pet,
-        data: petConData(petCon)
+        petInfo: petProfile,
+        data: petConData(petCon),
       };
     } catch (error) {
       throw new BadRequestException('Has error when get condition');
@@ -174,7 +174,6 @@ export class PetService {
     updatePetConditionDto: UpdatePetConditionDto,
     files: Array<Express.Multer.File>,
   ) {
-
     const folder = 'pet-condition';
     let actualImg = '';
 
@@ -189,7 +188,6 @@ export class PetService {
       petId,
     });
     await this.petConRepository.save(newPetCon);
-
 
     return {
       message: 'Update successfully',
@@ -297,7 +295,10 @@ export class PetService {
       .createQueryBuilder()
       .update(PetCondition)
       .set({ ...updateVetAdviceDto })
-      .where("id = (SELECT id FROM pet_condition WHERE petId = :petId ORDER BY id DESC LIMIT 1)", { petId })
+      .where(
+        'id = (SELECT id FROM pet_condition WHERE petId = :petId ORDER BY id DESC LIMIT 1)',
+        { petId },
+      )
       .execute();
 
     if (res.affected <= 0) {
@@ -352,9 +353,7 @@ const petConData = (res: any, isObject: boolean = false) => {
   if (isObject) {
     return transformPetCon(res);
   }
-  return res.map((petCon: PetCondition) =>
-    transformPetCon(petCon),
-  );
+  return res.map((petCon: PetCondition) => transformPetCon(petCon));
 };
 
 const transformPetCon = (petCon: PetCondition) => {
@@ -370,5 +369,5 @@ const transformPetCon = (petCon: PetCondition) => {
     recommendedMedicines: petCon.recommendedMedicines,
     recommendedMeal: petCon.recommendedMeal,
     dateUpdate: petCon.dateUpdate,
-  }
-}
+  };
+};
