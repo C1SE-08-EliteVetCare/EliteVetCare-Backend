@@ -95,6 +95,7 @@ export class AppointmentService {
       order: { createdAt: 'DESC' },
       relations: {
         user: true,
+        vetAppointment: {user: true}
       },
       take: limit,
       skip: skip,
@@ -104,7 +105,7 @@ export class AppointmentService {
     const nextPage = page + 1 > lastPage ? null : page + 1;
     const prevPage = page - 1 < 1 ? null : page - 1;
     return {
-      data: appointmentData(res),
+      data: appointmentVetData(res),
       total,
       currentPage: page,
       lastPage,
@@ -123,7 +124,7 @@ export class AppointmentService {
     if (!res) {
       throw new NotFoundException('Appointment id is not found');
     }
-    return appointmentData(res, true);
+    return appointmentVetData(res, true);
   }
 
   async updateStatus(id: number, vetId: number, action: number) {
@@ -187,5 +188,41 @@ const transformAppointment = (appointment: Appointment) => {
       streetAddress: appointment.clinic?.streetAddress,
       logo: appointment.clinic?.logo,
     },
+  };
+};
+
+const appointmentVetData = (res: any, isObject: boolean = false) => {
+  if (isObject) {
+    return transformAppointmentVet(res);
+  }
+  return res.map((appointment: Appointment) =>
+    transformAppointmentVet(appointment),
+  );
+};
+
+const transformAppointmentVet = (appointment: Appointment) => {
+  return {
+    id: appointment.id,
+    appointmentDate: appointment.appointmentDate,
+    appointmentTime: appointment.appointmentTime,
+    servicePackage: appointment.servicePackage,
+    status: appointment.status,
+    acceptedId: appointment.acceptedId,
+    createdAt: appointment.createdAt,
+    updatedAt: appointment.updatedAt,
+    petOwner: {
+      id: appointment.user?.id,
+      fullName: appointment.user?.fullName,
+      email: appointment.user?.email,
+      phone: appointment.user?.phone,
+      avatar: appointment.user?.avatar
+    },
+    vetAppointment: {
+      vetId: appointment.vetAppointment?.user?.id,
+      fullName: appointment.vetAppointment?.user?.fullName,
+      email: appointment.vetAppointment?.user?.email,
+      phone: appointment.vetAppointment?.user?.phone,
+      dateAccepted: appointment.vetAppointment?.dateAccepted,
+    }
   };
 };
