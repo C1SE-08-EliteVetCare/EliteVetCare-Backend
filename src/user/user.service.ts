@@ -38,7 +38,7 @@ export class UserService {
   }
 
   async findAll(query: FilterUserDto): Promise<any> {
-    const limit = query.limit || 10;
+    const limit = query.limit || null;
     const page = query.page || 1;
     const skip = (page - 1) * limit;
     const keyword = query.search || '';
