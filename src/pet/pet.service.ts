@@ -32,8 +32,7 @@ export class PetService {
   ) {
     try {
       const folder = 'pet-avatar';
-      const { url } = await this.cloudinaryService.uploadFile(file, folder);
-
+      const { url, public_id } = await this.cloudinaryService.uploadFile(file, folder);
       const newPet = await this.petRepository
         .createQueryBuilder()
         .insert()
@@ -42,6 +41,7 @@ export class PetService {
           {
             ...createPetDto,
             avatar: url,
+            avatarId: public_id,
             ownerId: id,
           },
         ])
@@ -62,16 +62,22 @@ export class PetService {
     const keyword = query.search || '';
 
     const [res, total] = await this.petRepository.findAndCount({
+      relations: {
+        petTreatment: {
+          clinic: true,
+        }
+      },
       order: { createdAt: 'DESC' },
       take: limit,
       skip: skip,
       where: { ownerId, name: ILike(`%${keyword}%`) },
     });
+
     const lastPage = Math.ceil(total / limit);
     const nextPage = page + 1 > lastPage ? null : page + 1;
     const prevPage = page - 1 < 1 ? null : page - 1;
     return {
-      data: res,
+      data: petData(res),
       total,
       currentPage: page,
       lastPage,
@@ -96,10 +102,16 @@ export class PetService {
     updatePetDto: UpdatePetDto,
     file: Express.Multer.File,
   ) {
+    const pet = await this.petRepository.findOne({
+      where: { id, ownerId },
+    });
+
     if (file) {
+      await this.cloudinaryService.deleteFile(pet.avatarId)
       const folder = 'pet-avatar';
-      const { url } = await this.cloudinaryService.uploadFile(file, folder);
+      const { url, public_id } = await this.cloudinaryService.uploadFile(file, folder);
       updatePetDto.avatar = url;
+      updatePetDto.avatarId = public_id
     }
 
     const res = await this.petRepository
@@ -369,5 +381,36 @@ const transformPetCon = (petCon: PetCondition) => {
     recommendedMedicines: petCon.recommendedMedicines,
     recommendedMeal: petCon.recommendedMeal,
     dateUpdate: petCon.dateUpdate,
+  };
+};
+
+const petData = (res: any, isObject: boolean = false) => {
+  if (isObject) {
+    return transformPet(res);
+  }
+  return res.map((pet: Pet) => transformPet(pet));
+};
+
+const transformPet = (pet: Pet) => {
+  return {
+    id: pet.id,
+    name: pet.name,
+    species: pet.species,
+    breed: pet.breed,
+    gender: pet.gender,
+    age: pet.age,
+    weight: pet.weight,
+    furColor: pet.furColor,
+    avatar: pet.avatar,
+    ownerId: pet.ownerId,
+    createdAt: pet.createdAt,
+    clinic: {
+      id: pet?.petTreatment?.clinic.id,
+      name: pet?.petTreatment?.clinic.name,
+      city: pet?.petTreatment?.clinic.city,
+      district: pet?.petTreatment?.clinic.district,
+      streetAddress: pet?.petTreatment?.clinic.streetAddress,
+      logo: pet?.petTreatment?.clinic.logo,
+    },
   };
 };

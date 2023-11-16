@@ -33,4 +33,8 @@ export class UpdatePetDto {
   @IsOptional()
   @IsString()
   avatar: string
+
+  @IsOptional()
+  @IsString()
+  avatarId: string
 }

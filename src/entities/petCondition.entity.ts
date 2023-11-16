@@ -35,6 +35,9 @@ export class PetCondition {
   @Column({ name: 'actual_img', nullable: true })
   actualImg: string;
 
+  @Column("varchar", { name: 'actual_img_id', nullable: true, length: 100 })
+  actualImgId: string;
+
   @Column('text', { name: 'vet_advice', nullable: true })
   vetAdvice: string;
 

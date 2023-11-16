@@ -98,15 +98,22 @@ export class UserService {
     try {
       // Upload avatar to cloudinary
       const folder = 'user-avatar';
-      const { url } = await this.cloudinaryService.uploadFile(file, folder);
+      const { url, public_id } = await this.cloudinaryService.uploadFile(file, folder);
+
+      const user = await this.userRepository.findOne({
+        where: {id}
+      })
+
+      if (user.avatarId !== "") {
+        // Delete image in database
+        await this.cloudinaryService.deleteFile(user.avatarId)
+      }
 
       // Update avatar url into database
-      await this.userRepository
-        .createQueryBuilder()
-        .update(User)
-        .set({ avatar: url })
-        .where('id= :id', { id })
-        .execute();
+      user.avatar = url
+      user.avatarId = public_id
+
+      await this.userRepository.save(user)
 
       return {
         message: 'Update successfully',

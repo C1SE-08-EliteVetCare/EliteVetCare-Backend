@@ -52,6 +52,9 @@ export class User {
   @Column({ nullable: true })
   avatar: string;
 
+  @Column("varchar", { name: 'avatar_id', nullable: true, length: 100 })
+  avatarId: string;
+
   @Column('varchar', { length: 200 })
   phone: string;
 

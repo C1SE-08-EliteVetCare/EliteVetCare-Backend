@@ -41,6 +41,9 @@ export class Pet {
   @Column()
   avatar: string;
 
+  @Column("varchar", { name: 'avatar_id', nullable: true, length: 100 })
+  avatarId: string;
+
   @Column({ name: 'owner_id' })
   ownerId: number;
 
