@@ -48,7 +48,7 @@ export class UserService {
       skip: skip,
       where: { fullName: ILike(`%${keyword}%`) },
       select: {
-        id: true, email: true, fullName: true, phone: true, gender: true, city: true, district: true, ward: true,
+        id: true, email: true, fullName: true, phone: true, gender: true, city: true, district: true, ward: true, streetAddress: true,
         birthYear: true, avatar: true, operatingStatus: true, createdAt: true
       },
       relations: {
