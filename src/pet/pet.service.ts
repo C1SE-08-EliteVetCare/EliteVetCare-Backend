@@ -221,6 +221,7 @@ export class PetService {
     await this.petTreatmentRepository.save(newTreatment);
     return {
       message: 'Send successfully',
+      newTreatment: newTreatment
     };
   }
 
