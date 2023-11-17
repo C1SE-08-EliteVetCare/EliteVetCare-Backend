@@ -8,7 +8,7 @@ import { UpdatePetDto } from './dto/update-pet.dto';
 import { CloudinaryService } from '../config/cloudinary/cloudinary.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Pet, PetCondition, PetTreatment } from '../entities';
-import { IsNull, ILike, Repository } from 'typeorm';
+import { IsNull, ILike, Repository, Not } from "typeorm";
 import { FilterPetDto } from './dto/filter-pet.dto';
 import { UpdatePetConditionDto } from './dto/update-pet-condition.dto';
 import { UpdateVetAdviceDto } from './dto/update-vet-advice.dto';
@@ -248,7 +248,8 @@ export class PetService {
     const page = query.page || 1;
     const skip = (page - 1) * limit;
     const keyword = query.search || '';
-    const status = +query.status === 1 ? IsNull() : undefined;
+    const status = +query.status === 1 ? IsNull() : Not(IsNull());
+    console.log(status);
     const [res, total] = await this.petTreatmentRepository.findAndCount({
       order: { createdAt: 'DESC' },
       where: { clinicId, vetId: status, pet: { name: ILike(`%${keyword}%`) } },
