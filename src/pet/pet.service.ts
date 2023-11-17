@@ -248,11 +248,12 @@ export class PetService {
     const page = query.page || 1;
     const skip = (page - 1) * limit;
     const keyword = query.search || '';
-    const status = +query.status === 1 ? IsNull() : Not(IsNull());
-    console.log(status);
+    const breed = query.breed || undefined;
+    const species = query.species || undefined;
+    const vetId = +query.status === 1 ? IsNull() : +query.status === 2 ? Not(IsNull()) : undefined;
     const [res, total] = await this.petTreatmentRepository.findAndCount({
       order: { createdAt: 'DESC' },
-      where: { clinicId, vetId: status, pet: { name: ILike(`%${keyword}%`) } },
+      where: { clinicId, vetId, pet: { name: ILike(`%${keyword}%`), breed, species } },
       relations: {
         pet: {
           user: true,
