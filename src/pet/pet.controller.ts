@@ -67,6 +67,7 @@ export class PetController {
   @UseGuards(new RoleGuard(['Vet']))
   @UseGuards(AuthGuard('jwt'))
   @Post('accept-treatment')
+  @HttpCode(HttpStatus.OK)
   acceptTreatment(
     @GetUser('id') vetId: number,
     @Body() body: { treatmentId: string },
