@@ -1,6 +1,6 @@
 import {
   BadRequestException,
-  ForbiddenException, HttpStatus,
+  ForbiddenException, HttpException, HttpStatus,
   Inject,
   Injectable,
   NotFoundException,
@@ -336,6 +336,24 @@ export class AuthService {
       message: "Login successfully",
       ...token
     })
+  }
+
+  async handleVerifyToken(token) {
+    try {
+      const payload = this.jwt.verify(token, {
+        secret: this.configService.get('JWT_AT_SECRET')
+      });
+      return payload['email'];
+    } catch (e) {
+      throw new HttpException(
+        {
+          key: '',
+          data: {},
+          statusCode: HttpStatus.UNAUTHORIZED,
+        },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
   }
 }
 
