@@ -104,7 +104,7 @@ export class UserService {
         where: {id}
       })
 
-      if (user.avatarId !== "") {
+      if (user.avatarId !== null) {
         // Delete image in database
         await this.cloudinaryService.deleteFile(user.avatarId)
       }
