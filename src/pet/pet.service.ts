@@ -227,7 +227,7 @@ export class PetService {
 
   async acceptTreatment(vetId: number, treatmentId: number) {
     const currentDate = new Date();
-    const dateAccepted = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDay()}`;
+    const dateAccepted = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()}`;
     const res = await this.petTreatmentRepository.update(
       { id: treatmentId },
       {
