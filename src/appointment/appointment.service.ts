@@ -39,7 +39,7 @@ export class AppointmentService {
     const status = query.status || undefined;
 
     const [res, total] = await this.appointRepository.findAndCount({
-      order: { createdAt: 'DESC' },
+      order: { appointmentDate: 'ASC' },
       relations: {
         user: true,
         vetAppointment: {
@@ -92,7 +92,7 @@ export class AppointmentService {
     const status = query.status || undefined;
 
     const [res, total] = await this.appointRepository.findAndCount({
-      order: { createdAt: 'DESC' },
+      order: { appointmentDate: 'ASC' },
       relations: {
         user: true,
         vetAppointment: {user: true}
