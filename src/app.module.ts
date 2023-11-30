@@ -5,18 +5,20 @@ import {
 } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { UserModule } from './user/user.module';
 import { ConfigModule } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
-import { PetModule } from './pet/pet.module';
-import { AppointmentModule } from './appointment/appointment.module';
 import { MailModule } from './config/mail/mail.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from '../db/data-source';
 import { CloudinaryModule } from './config/cloudinary/cloudinary.module';
-import { FeedbackModule } from './feedback/feedback.module';
-import { ClinicModule } from './clinic/clinic.module';
+import { JwtModule } from "@nestjs/jwt";
+import { AuthModule } from "./modules/auth/auth.module";
+import { UserModule } from "./modules/user/user.module";
+import { PetModule } from "./modules/pet/pet.module";
+import { AppointmentModule } from "./modules/appointment/appointment.module";
+import { FeedbackModule } from "./modules/feedback/feedback.module";
+import { ClinicModule } from "./modules/clinic/clinic.module";
+import { ChatModule } from "./modules/chat/chat.module";
 
 @Module({
   imports: [
@@ -33,6 +35,10 @@ import { ClinicModule } from './clinic/clinic.module';
     CloudinaryModule,
     FeedbackModule,
     ClinicModule,
+    JwtModule.register({
+      global: true
+    }),
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

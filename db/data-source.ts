@@ -3,18 +3,20 @@ import {
   Appointment,
   Clinic,
   Feedback,
-  Inbox,
   Message,
   Pet,
   PetCondition,
   PetTreatment,
   Role,
   User,
-  VetAppointment,
-} from '../src/entities';
+  VetAppointment
+} from "../src/entities";
 import { config } from 'dotenv';
 import * as process from 'process';
 import { SeederOptions } from "typeorm-extension";
+import { Room } from "../src/entities/room.entity";
+import { ConnectedUser } from "../src/entities/connected-user.entity";
+import { JoinedRoom } from "../src/entities/joined-room.entity";
 
 config();
 export const dataSourceOptions: DataSourceOptions & SeederOptions = {
@@ -33,13 +35,16 @@ export const dataSourceOptions: DataSourceOptions & SeederOptions = {
     PetTreatment,
     Appointment,
     VetAppointment,
-    Inbox,
     Message,
     Feedback,
+    Room,
+    ConnectedUser,
+    JoinedRoom,
+    Message
   ],
   migrations: ['dist/db/migrations/*.js'],
   seeds: ['dist/db/seeds/*.seeder.js'],
-  synchronize: false,
+  synchronize: true,
   ssl: true,
   extra: {
     ssl: {

@@ -23,6 +23,7 @@ export class CloudinaryService {
   }
 
   deleteFile(publicId: string): Promise<CloudinaryResponse> {
+    console.log(publicId);
     return new Promise<CloudinaryResponse>((resolve, reject) => {
       cloudinary.uploader.destroy(
         publicId,

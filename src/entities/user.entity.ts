@@ -5,8 +5,8 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   JoinColumn,
-  OneToMany,
-} from 'typeorm';
+  OneToMany, ManyToMany
+} from "typeorm";
 import { Role } from './role.entity';
 import { Clinic } from './clinic.entity';
 import { Pet } from './pet.entity';
@@ -14,8 +14,10 @@ import { Appointment } from './appointment.entity';
 import { VetAppointment } from './vetAppointment.entity';
 import { Feedback } from './feedback.entity';
 import { Message } from './message.entity';
-import { Inbox } from './Inbox.entity';
 import { PetTreatment } from './petTreatment.entity';
+import { Room } from "./room.entity";
+import { ConnectedUser } from "./connected-user.entity";
+import { JoinedRoom } from "./joined-room.entity";
 
 @Entity()
 export class User {
@@ -99,9 +101,15 @@ export class User {
   @OneToMany(() => Feedback, (feedback) => feedback.user)
   feedbacks: Feedback[];
 
-  @OneToMany(() => Inbox, (inbox) => inbox.user)
-  inboxes: Inbox[];
-
   @OneToMany(() => Message, (message) => message.user)
   messages: Message[];
+
+  @ManyToMany(() => Room, (room) => room.users)
+  rooms: Room[]
+
+  @OneToMany(() => ConnectedUser, connection => connection.user)
+  connections: ConnectedUser[];
+
+  @OneToMany(() => JoinedRoom, joinedRoom => joinedRoom.room)
+  joinedRooms: JoinedRoom[];
 }
