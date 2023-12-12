@@ -1,7 +1,7 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import {
   Appointment,
-  Clinic,
+  Clinic, Conversation,
   Feedback,
   Message,
   Pet,
@@ -14,9 +14,6 @@ import {
 import { config } from 'dotenv';
 import * as process from 'process';
 import { SeederOptions } from "typeorm-extension";
-import { Room } from "../src/entities/room.entity";
-import { ConnectedUser } from "../src/entities/connected-user.entity";
-import { JoinedRoom } from "../src/entities/joined-room.entity";
 
 config();
 export const dataSourceOptions: DataSourceOptions & SeederOptions = {
@@ -37,9 +34,7 @@ export const dataSourceOptions: DataSourceOptions & SeederOptions = {
     VetAppointment,
     Message,
     Feedback,
-    Room,
-    ConnectedUser,
-    JoinedRoom,
+    Conversation,
     Message
   ],
   migrations: ['dist/db/migrations/*.js'],

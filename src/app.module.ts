@@ -19,6 +19,8 @@ import { AppointmentModule } from "./modules/appointment/appointment.module";
 import { FeedbackModule } from "./modules/feedback/feedback.module";
 import { ClinicModule } from "./modules/clinic/clinic.module";
 import { ChatModule } from "./modules/chat/chat.module";
+import { ConversationModule } from "./modules/conversation/conversation.module";
+import { MessageModule } from "./modules/message/message.module";
 
 @Module({
   imports: [
@@ -39,6 +41,8 @@ import { ChatModule } from "./modules/chat/chat.module";
       global: true
     }),
     ChatModule,
+    ConversationModule,
+    MessageModule
   ],
   controllers: [AppController],
   providers: [AppService],

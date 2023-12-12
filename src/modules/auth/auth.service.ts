@@ -121,7 +121,6 @@ export class AuthService {
     const user = await this.userRepository.findOne({
       where: { tokenGoogle: tokenGoogle },
     });
-    console.log(user.tokenGoogle);
     if (!user) {
       throw new NotFoundException("User is not found")
     }

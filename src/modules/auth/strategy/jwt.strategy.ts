@@ -23,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     return await this.userRepository.findOne({
       relations: {
         clinic: true,
-        role: true
+        role: true,
       },
       where: { id: payload.sub },
     });

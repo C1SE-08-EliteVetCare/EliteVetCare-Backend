@@ -1,31 +1,31 @@
 import {
   Column,
+  Entity,
+  PrimaryGeneratedColumn,
   CreateDateColumn,
-  Entity, JoinColumn, JoinTable, ManyToOne,
-  PrimaryGeneratedColumn, UpdateDateColumn
-} from "typeorm";
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from "./user.entity";
-import { Room } from "./room.entity";
+import { Conversation } from "./conversation.entity";
 
 @Entity()
 export class Message {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: string;
 
-  @Column("text")
-  content: string;
+  @Column('text')
+  content: string
 
-  @ManyToOne(() => User, (user) => user.messages)
-  @JoinColumn({name: "user_id"})
-  user: User
-
-  @ManyToOne(() => Room, room => room.messages)
-  @JoinTable()
-  room: Room;
-
-  @CreateDateColumn({name: 'created_at'})
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp', nullable: true })
   createdAt: Date;
 
-  @UpdateDateColumn({name: 'updated_at'})
-  updatedAt: Date;
+  @ManyToOne(() => User, (user) => user.messages)
+  @JoinColumn({ name: 'user_id' })
+  author: User;
+
+  @ManyToOne(() => Conversation, (conversation) => conversation.messages)
+  @JoinColumn({ name: 'conversation_id' })
+  conversation: Conversation;
 }

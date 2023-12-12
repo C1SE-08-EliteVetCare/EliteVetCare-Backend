@@ -5,7 +5,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   JoinColumn,
-  OneToMany, ManyToMany
+  OneToMany, ManyToMany, JoinTable, OneToOne
 } from "typeorm";
 import { Role } from './role.entity';
 import { Clinic } from './clinic.entity';
@@ -15,9 +15,7 @@ import { VetAppointment } from './vetAppointment.entity';
 import { Feedback } from './feedback.entity';
 import { Message } from './message.entity';
 import { PetTreatment } from './petTreatment.entity';
-import { Room } from "./room.entity";
-import { ConnectedUser } from "./connected-user.entity";
-import { JoinedRoom } from "./joined-room.entity";
+import { Exclude } from "class-transformer";
 
 @Entity()
 export class User {
@@ -31,6 +29,7 @@ export class User {
   email: string;
 
   @Column('varchar')
+  @Exclude()
   password: string;
 
   @Column('char', { length: 3, nullable: true })
@@ -101,15 +100,6 @@ export class User {
   @OneToMany(() => Feedback, (feedback) => feedback.user)
   feedbacks: Feedback[];
 
-  @OneToMany(() => Message, (message) => message.user)
+  @OneToMany(() => Message, (message) => message.author)
   messages: Message[];
-
-  @ManyToMany(() => Room, (room) => room.users)
-  rooms: Room[]
-
-  @OneToMany(() => ConnectedUser, connection => connection.user)
-  connections: ConnectedUser[];
-
-  @OneToMany(() => JoinedRoom, joinedRoom => joinedRoom.room)
-  joinedRooms: JoinedRoom[];
 }
