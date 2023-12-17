@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -42,7 +41,7 @@ export class MessageService {
     const savedMessage = await this.messageRepository.save(newMessage);
     conversation.lastMessageSent = savedMessage;
     await this.conversationRepository.save(conversation);
-    return;
+    return savedMessage;
   }
 
   findAll(user: User, conversationId: number) {

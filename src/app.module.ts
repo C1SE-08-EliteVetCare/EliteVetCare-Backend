@@ -18,9 +18,10 @@ import { PetModule } from "./modules/pet/pet.module";
 import { AppointmentModule } from "./modules/appointment/appointment.module";
 import { FeedbackModule } from "./modules/feedback/feedback.module";
 import { ClinicModule } from "./modules/clinic/clinic.module";
-import { ChatModule } from "./modules/chat/chat.module";
+import { GatewayModule } from "./modules/gateway/gateway.module";
 import { ConversationModule } from "./modules/conversation/conversation.module";
 import { MessageModule } from "./modules/message/message.module";
+import { EventEmitterModule } from "@nestjs/event-emitter";
 
 @Module({
   imports: [
@@ -40,9 +41,10 @@ import { MessageModule } from "./modules/message/message.module";
     JwtModule.register({
       global: true
     }),
-    ChatModule,
+    GatewayModule,
     ConversationModule,
-    MessageModule
+    MessageModule,
+    EventEmitterModule.forRoot()
   ],
   controllers: [AppController],
   providers: [AppService],

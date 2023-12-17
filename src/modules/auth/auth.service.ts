@@ -274,7 +274,7 @@ export class AuthService {
     };
     const [jwtAt, jwtRt] = await Promise.all([
       this.jwt.signAsync(payload, {
-        expiresIn: '30m',
+        expiresIn: '3h',
         secret: this.configService.get('JWT_AT_SECRET'),
       }),
       this.jwt.signAsync(payload, {
@@ -339,18 +339,18 @@ export class AuthService {
 
   async handleVerifyToken(token: string) {
     try {
-      const payload = this.jwt.verify(token, {
+      const payload = await this.jwt.verify(token, {
         secret: this.configService.get('JWT_AT_SECRET'),
       });
-      return payload['sub'];
+      return this.userRepository.findOne({
+        where: {id: payload['sub']}
+      });
     } catch (e) {
-      throw new HttpException(
+      throw new UnauthorizedException(
         {
-          key: '',
-          data: {},
+          message: "Unauthorized",
           statusCode: HttpStatus.UNAUTHORIZED,
         },
-        HttpStatus.UNAUTHORIZED,
       );
     }
   }

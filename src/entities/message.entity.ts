@@ -18,7 +18,7 @@ export class Message {
   @Column('text')
   content: string
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamp', nullable: true })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone', nullable: true })
   createdAt: Date;
 
   @ManyToOne(() => User, (user) => user.messages)

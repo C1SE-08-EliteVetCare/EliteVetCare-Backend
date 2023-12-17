@@ -14,24 +14,33 @@ import { UpdateMessageDto } from './dto/update-message.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from '../user/decorator/user.decorator';
 import { User } from '../../entities';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Controller('message')
 export class MessageController {
-  constructor(private readonly messageService: MessageService) {}
+  constructor(private readonly messageService: MessageService,
+  private eventEmitter: EventEmitter2
+
+  ) {}
 
   @Post()
   @UseGuards(AuthGuard('jwt'))
-  create(@GetUser() user: User, @Body() createMessageDto: CreateMessageDto) {
-    return this.messageService.create(createMessageDto, user);
+  async create(@GetUser() user: User, @Body() createMessageDto: CreateMessageDto) {
+    const message = await this.messageService.create(createMessageDto, user);
+    this.eventEmitter.emit('message.create', message)
   }
 
   @Get(':conversationId')
   @UseGuards(AuthGuard('jwt'))
-  getMessageFromConversation(
+  async getMessageFromConversation(
     @GetUser() user: User,
     @Param('conversationId') conversationId: string,
   ) {
-    return this.messageService.findAll(user, +conversationId);
+    const messages = await this.messageService.findAll(user, +conversationId);
+    return {
+      id: parseInt(conversationId),
+      data: messages
+    }
   }
 
   @Get(':id')

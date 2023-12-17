@@ -77,9 +77,13 @@ export class ConversationService {
         'recipient.email',
         'recipient.avatar'
       ])
+      .leftJoin('conversation.lastMessageSent', 'lastMessageSent')
+      .addSelect([
+        'lastMessageSent'
+      ])
       .where('creator.id = :id', { id })
       .orWhere('recipient.id = :id', { id })
-      .orderBy('conversation.id', 'DESC')
+        .orderBy('conversation.updatedAt', 'DESC')
       .getMany();
   }
 

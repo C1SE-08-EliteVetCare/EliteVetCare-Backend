@@ -25,7 +25,7 @@ export class Feedback {
   @Column()
   rating: number;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ type: "timestamp with time zone", name: 'created_at' })
   createdAt: number;
 
   @ManyToOne(() => User, (user) => user.feedbacks)
