@@ -9,7 +9,7 @@ import { ILike, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon from 'argon2';
 import { CloudinaryService } from '../../config/cloudinary/cloudinary.service';
-import { FilterUserDto } from "./dto/filter-user.dto";
+import { FilterUserDto } from './dto/filter-user.dto';
 
 @Injectable()
 export class UserService {
@@ -48,13 +48,24 @@ export class UserService {
       skip: skip,
       where: { fullName: ILike(`%${keyword}%`) },
       select: {
-        id: true, email: true, fullName: true, phone: true, gender: true, city: true, district: true, ward: true, streetAddress: true,
-        birthYear: true, avatar: true, operatingStatus: true, createdAt: true
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        gender: true,
+        city: true,
+        district: true,
+        ward: true,
+        streetAddress: true,
+        birthYear: true,
+        avatar: true,
+        operatingStatus: true,
+        createdAt: true,
       },
       relations: {
         role: true,
-        clinic: true
-      }
+        clinic: true,
+      },
     });
     const lastPage = Math.ceil(total / limit);
     const nextPage = page + 1 > lastPage ? null : page + 1;
@@ -71,10 +82,17 @@ export class UserService {
 
   findOne(id: number) {
     const user = this.userRepository.findOne({
-      where: { id }
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        avatar: true,
+      },
     });
     if (!user) {
-      throw new NotFoundException("User id is not found");
+      throw new NotFoundException('User id is not found');
     }
     return user;
   }
@@ -98,22 +116,25 @@ export class UserService {
     try {
       // Upload avatar to cloudinary
       const folder = 'user-avatar';
-      const { url, public_id } = await this.cloudinaryService.uploadFile(file, folder);
+      const { url, public_id } = await this.cloudinaryService.uploadFile(
+        file,
+        folder,
+      );
 
       const user = await this.userRepository.findOne({
-        where: {id}
-      })
+        where: { id },
+      });
 
       if (user.avatarId !== null) {
         // Delete image in database
-        await this.cloudinaryService.deleteFile(user.avatarId)
+        await this.cloudinaryService.deleteFile(user.avatarId);
       }
 
       // Update avatar url into database
-      user.avatar = url
-      user.avatarId = public_id
+      user.avatar = url;
+      user.avatarId = public_id;
 
-      await this.userRepository.save(user)
+      await this.userRepository.save(user);
 
       return {
         message: 'Update successfully',
@@ -174,15 +195,18 @@ export class UserService {
     } else if (action === 'deactivate') {
       user.operatingStatus = false;
     } else {
-      throw new BadRequestException("Invalid action")
+      throw new BadRequestException('Invalid action');
     }
     await this.userRepository.save(user);
     return {
-      message: action === 'activate' ? 'Activate user successfully' : 'Deactivate user successfully',
+      message:
+        action === 'activate'
+          ? 'Activate user successfully'
+          : 'Deactivate user successfully',
     };
   }
 
   async saveUser(user: User) {
-    return this.userRepository.save(user)
+    return this.userRepository.save(user);
   }
 }

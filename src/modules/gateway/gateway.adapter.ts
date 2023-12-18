@@ -20,15 +20,14 @@ export class WebsocketAdapter extends IoAdapter {
       const authHeader = socket.handshake.headers.authorization;
       console.log('Inside Websocket Adapter Middleware');
       console.log((authHeader as string).split(' ')[1]);
-      // if (authHeader === null) {
-      //   console.log('Client has no access token');
-      //   return next(new Error('Not Authenticated'))
-      // }
-      // const payload = await this.jwt.verify(authHeader.split(' ')[1], {
-      //   secret: this.configService.get('JWT_AT_SECRET'),
-      // });
-      // console.log(payload['sub']);
-      // socket.user = await this.userService.findOne(payload['sub'])
+      if (authHeader === null) {
+        console.log('Client has no access token');
+        return next(new Error('Not Authenticated'))
+      }
+      const payload = await this.jwt.verify(authHeader.split(' ')[1], {
+        secret: this.configService.get('JWT_AT_SECRET'),
+      });
+      socket.user = await this.userService.findOne(payload['sub'])
       next()
     })
     return server;

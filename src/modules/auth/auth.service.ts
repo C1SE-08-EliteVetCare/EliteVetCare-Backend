@@ -117,7 +117,6 @@ export class AuthService {
   async googleLoginSuccess(
     tokenGoogle: string
   ) {
-    console.log(tokenGoogle);
     const user = await this.userRepository.findOne({
       where: { tokenGoogle: tokenGoogle },
     });

@@ -9,12 +9,14 @@ import { UserService } from "./modules/user/user.service";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.enableCors();
+
   const userService = app.get(UserService)
   const configService = app.get(ConfigService)
   const jwtService = app.get(JwtService)
   const adapter = new WebsocketAdapter(app, userService, configService, jwtService)
   app.useWebSocketAdapter(adapter)
-  app.enableCors();
 
   ValidationConfig(app);
 

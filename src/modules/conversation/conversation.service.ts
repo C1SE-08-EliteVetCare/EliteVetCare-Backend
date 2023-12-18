@@ -1,56 +1,79 @@
 import {
-  BadRequestException, ConflictException,
+  BadRequestException,
+  ConflictException,
   Inject,
-  Injectable
-} from "@nestjs/common";
+  Injectable,
+} from '@nestjs/common';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Conversation, User } from '../../entities';
+import { Conversation, Message, User } from '../../entities';
 import { UserService } from '../user/user.service';
+import { instanceToPlain } from 'class-transformer';
 
 @Injectable()
 export class ConversationService {
   constructor(
     @InjectRepository(Conversation)
     private readonly converRepository: Repository<Conversation>,
+    @InjectRepository(Message)
+    private readonly messageRepository: Repository<Message>,
     @Inject(UserService)
     private readonly userService: UserService,
   ) {}
 
-  async create(user: User, createConversationDto: CreateConversationDto) {
-    if (user.id === createConversationDto.recipientId)
-      throw new BadRequestException(
-        'Cannot Create Conversation',
-      );
-
-    const existingConversation = await this.converRepository.findOne({
+  isCreated(userId: number, recipientId: number) {
+    return  this.converRepository.findOne({
       where: [
         {
-          creator: { id: user.id },
-          recipient: { id: createConversationDto.recipientId },
+          creator: { id: userId },
+          recipient: { id: recipientId },
         },
         {
-          creator: { id: createConversationDto.recipientId },
-          recipient: { id: user.id },
+          creator: { id: recipientId },
+          recipient: { id: userId },
         },
       ],
     });
+  }
+
+  async create(user: User, createConversationDto: CreateConversationDto) {
+    if (user.id === createConversationDto.recipientId)
+      throw new BadRequestException('Cannot Create Conversation');
+
+    const existingConversation = await this.isCreated(user.id, createConversationDto.recipientId)
 
     if (existingConversation)
       throw new ConflictException('Conversation exists');
 
-    const recipient = await this.userService.findOne(createConversationDto.recipientId);
+    const recipient = await this.userService.findOne(
+      createConversationDto.recipientId,
+    );
 
-    if (!recipient)
-      throw new BadRequestException('Recipient not found');
+    if (!recipient) throw new BadRequestException('Recipient not found');
 
-    const conversation = this.converRepository.create({
+    const newConversation = this.converRepository.create({
       creator: user,
       recipient: recipient,
     });
-    return this.converRepository.save(conversation);
+    const conversation = await this.converRepository.save(newConversation)
+
+    const newMessage = this.messageRepository.create({
+      content: createConversationDto.message,
+      conversation,
+      author: user,
+    });
+    const message = await this.messageRepository.save(newMessage);
+
+    await this.converRepository.update(
+      { id: conversation.id },
+      {
+        lastMessageSent: message
+      },
+    );
+
+    return conversation;
   }
 
   findOne(id: number) {
@@ -68,22 +91,20 @@ export class ConversationService {
         'creator.id',
         'creator.fullName',
         'creator.email',
-        'creator.avatar'
+        'creator.avatar',
       ])
       .leftJoin('conversation.recipient', 'recipient')
       .addSelect([
         'recipient.id',
         'recipient.fullName',
         'recipient.email',
-        'recipient.avatar'
+        'recipient.avatar',
       ])
       .leftJoin('conversation.lastMessageSent', 'lastMessageSent')
-      .addSelect([
-        'lastMessageSent'
-      ])
+      .addSelect(['lastMessageSent'])
       .where('creator.id = :id', { id })
       .orWhere('recipient.id = :id', { id })
-        .orderBy('conversation.updatedAt', 'DESC')
+      .orderBy('conversation.updatedAt', 'DESC')
       .getMany();
   }
 
