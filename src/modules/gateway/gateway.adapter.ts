@@ -19,7 +19,7 @@ export class WebsocketAdapter extends IoAdapter {
     server.use(async (socket: AuthenticatedSocket, next) => {
       const authHeader = socket.handshake.headers.authorization;
       console.log('Inside Websocket Adapter Middleware');
-      console.log((authHeader as string).split(' ')[1]);
+      console.log(authHeader && (authHeader as string).split(' ')[1]);
       if (authHeader === null) {
         console.log('Client has no access token');
         socket.disconnect()
