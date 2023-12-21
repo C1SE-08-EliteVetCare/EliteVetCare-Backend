@@ -22,12 +22,17 @@ export class WebsocketAdapter extends IoAdapter {
       console.log((authHeader as string).split(' ')[1]);
       if (authHeader === null) {
         console.log('Client has no access token');
+        socket.disconnect()
         return next(new Error('Not Authenticated'))
       }
-      const payload = await this.jwt.verify(authHeader.split(' ')[1], {
-        secret: this.configService.get('JWT_AT_SECRET'),
-      });
-      socket.user = await this.userService.findOne(payload['sub'])
+      try {
+        const payload = await this.jwt.verify(authHeader.split(' ')[1], {
+          secret: this.configService.get('JWT_AT_SECRET'),
+        });
+        socket.user = await this.userService.findOne(payload['sub'])
+      } catch (error) {
+        socket.disconnect()
+      }
       next()
     })
     return server;

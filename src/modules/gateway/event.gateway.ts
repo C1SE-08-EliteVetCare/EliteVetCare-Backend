@@ -6,9 +6,9 @@ import {
   OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
-  WebSocketServer,
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+  WebSocketServer
+} from "@nestjs/websockets";
+import { Server } from 'socket.io';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from "../user/user.service";
 import { Inject, Logger } from "@nestjs/common";
@@ -16,7 +16,6 @@ import { ConversationService } from "../conversation/conversation.service";
 import { OnEvent } from "@nestjs/event-emitter";
 import { GatewaySessionManager } from "./gateway.session";
 import { AuthenticatedSocket } from "./interface/AuthenticatedSocket.interface";
-import { Message } from "../../entities";
 
 @WebSocketGateway({ cors: true })
 export class EventGateway
@@ -34,60 +33,30 @@ export class EventGateway
     private readonly sessions: GatewaySessionManager
   ) {}
 
-  // handleEmitSocket({ data, event, to }) {
-  //   if (to) {
-  //     // this.server.to(to.map(el => String(el))).emit(event, data);
-  //     this.server.to(to).emit(event, data);
-  //   } else {
-  //     this.server.emit(event, data);
-  //   }
-  // }
-  // @SubscribeMessage('send-message')
-  // async handleMessage(
-  //   @ConnectedSocket() socket: Socket,
-  //   @MessageBody() data: any,
-  // ) {
-  //   console.log('message: ', data);
-  //   setTimeout(() => {
-  //     this.server.emit('message', data);
-  //   }, 1000);
-  // }
-
   afterInit(server: any): any {
     this.logger.log(server, 'Init');
   }
 
   async handleConnection(socket: AuthenticatedSocket) {
-    // console.log('connection', socket.id);
-    // console.log('room', socket.rooms);
     console.log('New Incoming Connection');
     console.log(socket?.user);
-    socket.user && this.sessions.setUserSocket(socket.user.id, socket)
-    // socket.emit('connected', { status: 'good' });
-    // const authHeader = socket.handshake.headers.authorization;
-    // if (authHeader && (authHeader as string).split(' ')[1]) {
-    //   try {
-    //     // const userId = await this.authService.handleVerifyToken(
-    //     //   authHeader && (authHeader as string).split(' ')[1],
-    //     // );
-    //     // console.log(userId);
-    //
-    //     // client.data.user = this.userService.findOne(userId);
-    //
-    //     // Only emit rooms the specific connected client
-    //     // socket.join(socket.data.email);
-    //     // console.log('connect success', socket.data.email);
-    //   } catch (e) {
-    //     socket.disconnect()
-    //   }
-    // } else {
-    //   socket.disconnect();
-    // }
+    if (socket.user) {
+      this.sessions.setUserSocket(socket.user.id, socket)
+      socket.emit('connected', {status: 'good'})
+    } else {
+      socket.disconnect()
+    }
+  }
+
+  @SubscribeMessage('onClientConnect')
+  onClientConnect(@MessageBody() data: any, @ConnectedSocket() client: AuthenticatedSocket) {
+    console.log('onClientConnect');
+    console.log(data);
+    console.log(client?.user);
   }
 
   async handleDisconnect(socket: AuthenticatedSocket) {
-    // console.log(socket.id, socket?.data?.email);
-    this.sessions.removeUserSocket(socket.user.id)
+    this.sessions.removeUserSocket(socket?.user?.id)
     socket.disconnect();
     this.logger.log(socket.id, 'Disconnect');
   }
@@ -98,12 +67,12 @@ export class EventGateway
   }
 
   @OnEvent('message.create')
-  handleMessageCreateEvent(payload: Message) {
+  handleMessageCreateEvent(payload: any) {
     console.log('Inside message.create');
     const {
       author,
       conversation: { creator, recipient },
-    } = payload;
+    } = payload.message;
 
     const authorSocket = this.sessions.getUserSocket(author.id);
     const recipientSocket =
@@ -111,9 +80,26 @@ export class EventGateway
         ? this.sessions.getUserSocket(recipient.id) // author is creator in conversation
         : this.sessions.getUserSocket(creator.id); // author is recipient in conversation
 
-    console.log(`Recipient Socket: ${JSON.stringify(recipientSocket?.user)}`);
+    // console.log(`Recipient Socket: ${JSON.stringify(recipientSocket?.user)}`);
 
+    authorSocket && authorSocket.emit('onMessage', payload);
     recipientSocket && recipientSocket.emit('onMessage', payload);
-    authorSocket.emit('onMessage', payload);
+  }
+
+  @OnEvent('conversation.create')
+  handleConversationCreateEvent(payload: any) {
+    console.log('Inside conversation.create');
+    console.log(payload.recipient);
+    const recipientSocket = this.sessions.getUserSocket(payload.recipient.id);
+    recipientSocket && recipientSocket.emit('onConversation', payload);
+  }
+
+  @SubscribeMessage("onUserTyping")
+  async handleTypingMessage(@MessageBody() data: any) {
+    const { conversationId } = data
+    console.log('User is typing');
+    const id = parseInt(conversationId)
+    const conversation = await this.conversationService.findOne(id)
+    console.log(conversation);
   }
 }
