@@ -28,6 +28,7 @@ export class MessageController {
   async create(@GetUser() user: User, @Body() createMessageDto: CreateMessageDto) {
     const message = await this.messageService.create(createMessageDto, user);
     this.eventEmitter.emit('message.create', message)
+    return message;
   }
 
   @Get(':conversationId')
