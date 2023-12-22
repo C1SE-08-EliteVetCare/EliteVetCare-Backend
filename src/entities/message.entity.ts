@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { User } from "./user.entity";
 import { Conversation } from "./conversation.entity";
+import { Exclude } from "class-transformer";
 
 @Entity()
 export class Message {
@@ -27,5 +28,6 @@ export class Message {
 
   @ManyToOne(() => Conversation, (conversation) => conversation.messages)
   @JoinColumn({ name: 'conversation_id' })
+  @Exclude()
   conversation: Conversation;
 }

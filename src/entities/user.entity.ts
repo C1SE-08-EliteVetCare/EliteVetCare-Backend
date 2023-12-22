@@ -26,6 +26,7 @@ export class User {
   fullName: string;
 
   @Column('varchar', { unique: true, length: 100 })
+  @Exclude()
   email: string;
 
   @Column('varchar')
@@ -33,56 +34,72 @@ export class User {
   password: string;
 
   @Column('char', { length: 3, nullable: true })
+  @Exclude()
   gender: string;
 
   @Column('varchar', { length: 100, nullable: true })
+  @Exclude()
   city: string;
 
   @Column('varchar', { length: 150, nullable: true })
+  @Exclude()
   district: string;
 
   @Column('varchar', { length: 100, nullable: true })
+  @Exclude()
   ward: string;
 
   @Column('varchar', { name: 'street_address', length: 100, nullable: true })
+  @Exclude()
   streetAddress: string;
 
   @Column({ name: 'birth_year', nullable: true })
+  @Exclude()
   birthYear: number;
 
   @Column({ nullable: true })
   avatar: string;
 
   @Column("varchar", { name: 'avatar_id', nullable: true, length: 100 })
+  @Exclude()
   avatarId: string;
 
   @Column('varchar', { length: 200 })
+  @Exclude()
   phone: string;
 
   @Column({ name: 'operating_status', default: false })
+  @Exclude()
   operatingStatus: boolean;
 
   @Column({ name: 'hashed_rt', nullable: true })
+  @Exclude()
   hashedRt: string;
 
   @Column({ name: 'role_id', default: 2 })
+  @Exclude()
   roleId: number;
 
   @Column({ name: 'clinic_id', nullable: true })
+  @Exclude()
   clinicId: number;
 
   @Column({ name: 'token_google', nullable: true })
+  @Exclude()
   tokenGoogle: string;
 
   @CreateDateColumn({ name: 'created_at', nullable: true })
+  @Exclude()
   createdAt: Date;
 
   @ManyToOne(() => Role, (role) => role.users)
   @JoinColumn({ name: 'role_id' })
+  @Exclude()
   role: Role;
 
   @ManyToOne(() => Clinic, (clinic) => clinic.users)
   @JoinColumn({ name: 'clinic_id' })
+  @Exclude()
   clinic: Clinic;
 
   @OneToMany(() => Pet, (pet) => pet.user)

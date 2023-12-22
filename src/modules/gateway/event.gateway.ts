@@ -71,8 +71,11 @@ export class EventGateway
     console.log('Inside message.create');
     const {
       author,
-      conversation: { creator, recipient },
     } = payload.message;
+
+    const {
+      creator, recipient
+    } = payload.conversation
 
     const authorSocket = this.sessions.getUserSocket(author.id);
     const recipientSocket =

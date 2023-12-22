@@ -42,8 +42,8 @@ export class MessageService {
     conversation.lastMessageSent = savedMessage;
     const updatedConversation = await this.conversationRepository.save(conversation);
     return {
-      message: savedMessage,
-      conversation: updatedConversation
+      message: instanceToPlain(savedMessage),
+      conversation: instanceToPlain(updatedConversation)
     };
   }
 
