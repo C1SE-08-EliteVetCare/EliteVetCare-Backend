@@ -97,6 +97,44 @@ export class UserService {
     return user;
   }
 
+  findByEmail(email: string) {
+    const user = this.userRepository.findOne({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        avatar: true,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('User id is not found');
+    }
+    return user;
+  }
+
+  findAllVet(query: FilterUserDto) {
+    const keyword = query.search || '';
+    const user = this.userRepository.find({
+      where: { roleId: 3, fullName: ILike(`%${keyword}%`) },
+      relations: {
+        clinic: true
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        avatar: true,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('User id is not found');
+    }
+    return user;
+  }
+
   async updateProfile(id: number, updateUserDto: UpdateUserDto): Promise<any> {
     const res = await this.userRepository
       .createQueryBuilder()

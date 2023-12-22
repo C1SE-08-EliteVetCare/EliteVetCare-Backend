@@ -2,8 +2,8 @@ import {
   BadRequestException,
   ConflictException,
   Inject,
-  Injectable,
-} from '@nestjs/common';
+  Injectable, NotFoundException
+} from "@nestjs/common";
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -24,7 +24,7 @@ export class ConversationService {
   ) {}
 
   isCreated(userId: number, recipientId: number) {
-    return  this.converRepository.findOne({
+    return this.converRepository.findOne({
       where: [
         {
           creator: { id: userId },
@@ -39,19 +39,15 @@ export class ConversationService {
   }
 
   async create(user: User, createConversationDto: CreateConversationDto) {
-    if (user.id === createConversationDto.recipientId)
-      throw new BadRequestException('Cannot Create Conversation');
+    const recipient = await this.userService.findByEmail(createConversationDto.email)
 
-    const existingConversation = await this.isCreated(user.id, createConversationDto.recipientId)
+    if (!recipient) throw new NotFoundException('Recipient not found')
+    if (user.id === recipient.id) throw new BadRequestException('Cannot Create Conversation')
+
+    const existingConversation = await this.isCreated(user.id, recipient.id)
 
     if (existingConversation)
       throw new ConflictException('Conversation exists');
-
-    const recipient = await this.userService.findOne(
-      createConversationDto.recipientId,
-    );
-
-    if (!recipient) throw new BadRequestException('Recipient not found');
 
     const newConversation = this.converRepository.create({
       creator: user,
@@ -73,13 +69,34 @@ export class ConversationService {
       },
     );
 
-    return conversation;
+    return {
+      id: conversation.id,
+      ...conversation,
+      lastMessageSent: {
+        id: message.id,
+        content: message.content,
+        createdAt: message.createdAt
+      }
+    };
   }
 
   findOne(id: number) {
-    return this.converRepository.findOne({
-      where: { id },
-    });
+    return this.converRepository.createQueryBuilder('conversation')
+      .leftJoin('conversation.creator', 'creator')
+      .addSelect([
+        'creator.id',
+        'creator.fullName',
+        'creator.email',
+        'creator.avatar',
+      ])
+      .leftJoin('conversation.recipient', 'recipient')
+      .addSelect([
+        'recipient.id',
+        'recipient.fullName',
+        'recipient.email',
+        'recipient.avatar',
+      ])
+      .getOne()
   }
 
   async findAll(id: number) {

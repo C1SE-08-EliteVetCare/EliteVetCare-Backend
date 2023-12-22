@@ -22,7 +22,7 @@ export class MessageService {
   async create({ content, conversationId }: CreateMessageDto, user: User) {
     const conversation = await this.conversationRepository.findOne({
       where: { id: conversationId },
-      relations: ['creator', 'recipient'],
+      relations: ['creator', 'recipient', 'lastMessageSent'],
     });
     const { creator, recipient } = conversation;
     if (!conversation) throw new NotFoundException('Conversation not found');
@@ -40,8 +40,11 @@ export class MessageService {
     });
     const savedMessage = await this.messageRepository.save(newMessage);
     conversation.lastMessageSent = savedMessage;
-    await this.conversationRepository.save(conversation);
-    return savedMessage;
+    const updatedConversation = await this.conversationRepository.save(conversation);
+    return {
+      message: savedMessage,
+      conversation: updatedConversation
+    };
   }
 
   findAll(user: User, conversationId: number) {

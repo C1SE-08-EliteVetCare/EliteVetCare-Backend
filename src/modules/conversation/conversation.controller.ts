@@ -1,21 +1,40 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { ConversationService } from './conversation.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
-import { GetUser } from "../user/decorator/user.decorator";
-import { User } from "../../entities";
-import { AuthGuard } from "@nestjs/passport";
+import { GetUser } from '../user/decorator/user.decorator';
+import { User } from '../../entities';
+import { AuthGuard } from '@nestjs/passport';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Controller('conversation')
 export class ConversationController {
-  constructor(private readonly conversationService: ConversationService) {}
+  constructor(
+    private readonly conversationService: ConversationService,
+    private readonly events: EventEmitter2,
+  ) {}
 
   @Post()
   @UseGuards(AuthGuard('jwt'))
-  create(@GetUser() user: User ,@Body() createConversationDto: CreateConversationDto) {
-    // console.log(user);
-    // console.log(createConversationDto);
-    return this.conversationService.create(user, createConversationDto);
+  async create(
+    @GetUser() user: User,
+    @Body() createConversationDto: CreateConversationDto,
+  ) {
+    const conversation = await this.conversationService.create(
+      user,
+      createConversationDto,
+    );
+    this.events.emit('conversation.create', conversation);
+    return conversation;
   }
 
   @Get('conversations')
@@ -30,7 +49,10 @@ export class ConversationController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateConversationDto: UpdateConversationDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateConversationDto: UpdateConversationDto,
+  ) {
     return this.conversationService.update(+id, updateConversationDto);
   }
 

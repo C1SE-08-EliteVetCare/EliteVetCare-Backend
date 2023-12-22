@@ -43,6 +43,12 @@ export class UserController {
     return this.userService.findAll(query);
   }
 
+  @Get('vets')
+  @HttpCode(HttpStatus.OK)
+  findAllVet(@Query() query: FilterUserDto): Promise<any> {
+    return this.userService.findAllVet(query);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(+id);

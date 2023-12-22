@@ -1,10 +1,10 @@
 import { Type } from "class-transformer";
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString } from "class-validator";
 
 export class CreateConversationDto {
-  @Type(() => Number)
+  @IsEmail()
   @IsNotEmpty()
-  recipientId: number;
+  email: string;
 
   @IsString()
   @IsNotEmpty()
