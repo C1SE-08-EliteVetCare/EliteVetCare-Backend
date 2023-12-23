@@ -118,7 +118,16 @@ export class ConversationService {
         'recipient.avatar',
       ])
       .leftJoin('conversation.lastMessageSent', 'lastMessageSent')
-      .addSelect(['lastMessageSent'])
+      .addSelect([
+        'lastMessageSent', 'lastMessageSent.author'
+      ])
+      .leftJoin('lastMessageSent.author', 'author')
+      .addSelect([
+        'author.id',
+        'author.fullName',
+        'author.email',
+        'author.avatar',
+      ])
       .where('creator.id = :id', { id })
       .orWhere('recipient.id = :id', { id })
       .orderBy('conversation.updatedAt', 'DESC')

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,6 +11,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as argon from 'argon2';
 import { CloudinaryService } from '../../config/cloudinary/cloudinary.service';
 import { FilterUserDto } from './dto/filter-user.dto';
+import { ClinicService } from '../clinic/clinic.service';
+import { instanceToPlain } from 'class-transformer';
 
 @Injectable()
 export class UserService {
@@ -17,6 +20,8 @@ export class UserService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private readonly cloudinaryService: CloudinaryService,
+    @Inject(ClinicService)
+    private readonly clinicService: ClinicService,
   ) {}
 
   getCurrentUser(user: User) {
@@ -100,27 +105,6 @@ export class UserService {
   findByEmail(email: string) {
     const user = this.userRepository.findOne({
       where: { email },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        phone: true,
-        avatar: true,
-      },
-    });
-    if (!user) {
-      throw new NotFoundException('User id is not found');
-    }
-    return user;
-  }
-
-  findAllVet(query: FilterUserDto) {
-    const keyword = query.search || '';
-    const user = this.userRepository.find({
-      where: { roleId: 3, fullName: ILike(`%${keyword}%`) },
-      relations: {
-        clinic: true
-      },
       select: {
         id: true,
         email: true,
@@ -246,5 +230,72 @@ export class UserService {
 
   async saveUser(user: User) {
     return this.userRepository.save(user);
+  }
+
+  async findAllVet(query: FilterUserDto) {
+    const keyword = query.search || '';
+    const user = await this.userRepository.find({
+      where: { roleId: 3, fullName: ILike(`%${keyword}%`) },
+      relations: {
+        clinic: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        avatar: true,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('User id is not found');
+    }
+    return user;
+  }
+
+  async recommendVet(userId: number) {
+    const suggestedDoctors = [];
+
+    const [allClinics, user] = await Promise.all([
+      this.clinicService.findAll(),
+      this.userRepository.findOne({
+      where: {id: userId},
+      relations: {appointments: true}
+      })
+    ])
+
+    // Tạo danh sách phòng khám mà người dùng đã từng đặt cuộc hẹn
+    const clinicIdsWithAppointments = user.appointments.map(appointment => appointment.clinicId);
+
+    // Tạo danh sách phòng khám mà người dùng chưa từng đặt cuộc hẹn
+    const clinicIdsWithoutAppointments = allClinics
+      .map(clinic => clinic.id)
+      .filter(clinicId => !clinicIdsWithAppointments.includes(clinicId));
+
+    for (const clinicId of clinicIdsWithAppointments) {
+      const vet = await this.getVetsInClinic(clinicId)
+      vet !== null && suggestedDoctors.push(...vet);
+    }
+
+    for (const clinicId of clinicIdsWithAppointments.concat(clinicIdsWithoutAppointments)) {
+      const vet = await this.getVetsInClinic(clinicId)
+      vet !== null && suggestedDoctors.push(...vet);
+    }
+
+    // Lọc bác sĩ trùng lặp (nếu có)
+    return suggestedDoctors.filter((doctor, index, self) => {
+      return index === self.findIndex(d => d.id === doctor.id);
+    });
+  }
+
+  getVetsInClinic(clinicId: number) {
+    return this.userRepository.createQueryBuilder('user')
+      .where('user.roleId = :roleId', { roleId: 3 })
+      .andWhere('user.clinicId = :clinicId', { clinicId })
+      .leftJoin('user.clinic', 'clinic')
+      .select(['user.id', 'user.fullName', 'user.avatar', 'user.email', 'clinic.id', 'clinic.name', 'clinic.city', 'clinic.district', 'clinic.ward', 'clinic.streetAddress', 'clinic.logo'])
+      .orderBy('RANDOM()')
+      .limit(2)
+      .getMany()
   }
 }

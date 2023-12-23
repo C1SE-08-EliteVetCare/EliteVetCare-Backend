@@ -26,8 +26,6 @@ export class EventGateway
   private logger: Logger = new Logger('MessageGateway');
 
   constructor(
-    private readonly authService: AuthService,
-    private readonly userService: UserService,
     private readonly conversationService: ConversationService,
     @Inject(GatewaySessionManager)
     private readonly sessions: GatewaySessionManager
@@ -77,6 +75,8 @@ export class EventGateway
       creator, recipient
     } = payload.conversation
 
+    console.log(payload);
+
     const authorSocket = this.sessions.getUserSocket(author.id);
     const recipientSocket =
       author.id === creator.id
@@ -103,6 +103,6 @@ export class EventGateway
     console.log('User is typing');
     const id = parseInt(conversationId)
     const conversation = await this.conversationService.findOne(id)
-    console.log(conversation);
+  console.log(conversation);
   }
 }

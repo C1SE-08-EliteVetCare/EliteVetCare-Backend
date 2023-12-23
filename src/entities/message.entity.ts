@@ -7,19 +7,26 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { User } from "./user.entity";
-import { Conversation } from "./conversation.entity";
-import { Exclude } from "class-transformer";
+import { User } from './user.entity';
+import { Conversation } from './conversation.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity()
 export class Message {
   @PrimaryGeneratedColumn()
   id: string;
 
-  @Column('text')
-  content: string
+  @Column('text', { nullable: true })
+  content: string;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone', nullable: true })
+  @Column({ nullable: true, name: 'img_url' })
+  imgUrl: string;
+
+  @CreateDateColumn({
+    name: 'created_at',
+    type: 'timestamp with time zone',
+    nullable: true,
+  })
   createdAt: Date;
 
   @ManyToOne(() => User, (user) => user.messages)

@@ -33,7 +33,7 @@ export class Conversation {
   })
   messages: Message[];
 
-  @OneToOne(() => Message, { createForeignKeyConstraints: false })
+  @OneToOne(() => Message)
   @JoinColumn({ name: 'last_message_sent' })
   lastMessageSent: Message;
 }

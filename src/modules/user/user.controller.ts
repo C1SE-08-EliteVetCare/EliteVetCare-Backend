@@ -49,6 +49,12 @@ export class UserController {
     return this.userService.findAllVet(query);
   }
 
+  @Get('vets/recommend')
+  @HttpCode(HttpStatus.OK)
+  recommendVet(@Query('userId') userId: string): Promise<any> {
+    return this.userService.recommendVet(+userId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(+id);

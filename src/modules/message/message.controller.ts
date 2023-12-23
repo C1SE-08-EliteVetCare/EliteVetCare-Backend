@@ -6,8 +6,8 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
-} from '@nestjs/common';
+  UseGuards, UploadedFile, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, UseInterceptors
+} from "@nestjs/common";
 import { MessageService } from './message.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
@@ -15,6 +15,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from '../user/decorator/user.decorator';
 import { User } from '../../entities';
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { FileInterceptor } from "@nestjs/platform-express";
 
 @Controller('message')
 export class MessageController {
@@ -25,8 +26,44 @@ export class MessageController {
 
   @Post()
   @UseGuards(AuthGuard('jwt'))
-  async create(@GetUser() user: User, @Body() createMessageDto: CreateMessageDto) {
+  async create(
+    @GetUser() user: User,
+    @Body() createMessageDto: CreateMessageDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        fileIsRequired: false,
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 4 }),
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
+        ],
+      }),
+    )
+      file: Express.Multer.File,
+  ) {
+    console.log(createMessageDto);
     const message = await this.messageService.create(createMessageDto, user);
+    this.eventEmitter.emit('message.create', message)
+    return message;
+  }
+
+  @Post('upload-image')
+  @UseGuards(AuthGuard('jwt'))
+  @UseInterceptors(FileInterceptor('img'))
+  async createByImage(
+    @GetUser() user: User,
+    @Body() createMessageDto: CreateMessageDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        fileIsRequired: false,
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 4 }),
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
+        ],
+      }),
+    )
+      file: Express.Multer.File,
+  ) {
+    const message = await this.messageService.uploadImg(createMessageDto, user, file);
     this.eventEmitter.emit('message.create', message)
     return message;
   }

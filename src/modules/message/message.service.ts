@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Conversation, Message, User } from '../../entities';
 import { Repository } from 'typeorm';
 import { instanceToPlain } from 'class-transformer';
+import { CloudinaryService } from "../../config/cloudinary/cloudinary.service";
 
 @Injectable()
 export class MessageService {
@@ -17,6 +18,7 @@ export class MessageService {
     private readonly messageRepository: Repository<Message>,
     @InjectRepository(Conversation)
     private readonly conversationRepository: Repository<Conversation>,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async create({ content, conversationId }: CreateMessageDto, user: User) {
@@ -24,14 +26,12 @@ export class MessageService {
       where: { id: conversationId },
       relations: ['creator', 'recipient', 'lastMessageSent'],
     });
-    const { creator, recipient } = conversation;
     if (!conversation) throw new NotFoundException('Conversation not found');
+
+    const { creator, recipient } = conversation;
     if (creator.id !== user.id && recipient.id !== user.id)
       throw new ForbiddenException('Cannot create message');
 
-    // conversation.creator = instanceToPlain(conversation.creator) as User;
-    // conversation.recipient = instanceToPlain(conversation.recipient) as User;
-    //
     // create message
     const newMessage = this.messageRepository.create({
       content,
@@ -47,14 +47,41 @@ export class MessageService {
     };
   }
 
+  async uploadImg({conversationId}: CreateMessageDto, user: User, file:Express.Multer.File) {
+    const folder = 'chat-image';
+
+    const conversation = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+      relations: ['creator', 'recipient', 'lastMessageSent'],
+    });
+    const { creator, recipient } = conversation;
+    if (!conversation) throw new NotFoundException('Conversation not found');
+
+    if (creator.id !== user.id && recipient.id !== user.id)
+      throw new ForbiddenException('Cannot create message');
+
+    const { url, public_id } = await this.cloudinaryService.uploadFile(
+      file,
+      folder,
+    );
+
+    // create message with image
+    const newMessage = this.messageRepository.create({
+      imgUrl: url,
+      conversation,
+      author: instanceToPlain(user),
+    });
+
+    const savedMessage = await this.messageRepository.save(newMessage);
+    conversation.lastMessageSent = savedMessage;
+    const updatedConversation = await this.conversationRepository.save(conversation);
+    return {
+      message: instanceToPlain(savedMessage),
+      conversation: instanceToPlain(updatedConversation)
+    };
+  }
+
   findAll(user: User, conversationId: number) {
-    // return this.messageRepository.find({
-    //   where: { conversation: { id: conversationId } },
-    //   order: {
-    //     createdAt: 'DESC'
-    //   },
-    //   relations: ['author']
-    // });
     return this.messageRepository
       .createQueryBuilder('message')
       .leftJoin('message.author', 'author')
