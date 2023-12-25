@@ -28,4 +28,16 @@ export class MailService {
       },
     });
   }
+
+  async sendEmailContact(email: string, fullName: string, phone: string, content: string, emailTo: string) {
+    await this.mailerService.sendMail({
+      to: emailTo,
+      from: 'EliteVetCare" <noreply@elitevetcare.com>',
+      subject: `Thông báo: Liên hệ mới từ <${email}>`,
+      template: './sendContact',
+      context: {
+        fullName, email, phone, content,
+      },
+    });
+  }
 }

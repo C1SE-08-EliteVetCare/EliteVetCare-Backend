@@ -4,6 +4,7 @@ import { AuthenticatedSocket } from "./interface/AuthenticatedSocket.interface";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { UserService } from "../user/user.service";
+import { Logger } from "@nestjs/common";
 
 export class WebsocketAdapter extends IoAdapter {
   constructor(
@@ -14,6 +15,7 @@ export class WebsocketAdapter extends IoAdapter {
   ) {
     super(app);
   }
+  private logger: Logger = new Logger('MessageGateway');
   createIOServer(port: number, options?: any): any {
     const server = super.createIOServer(port, options);
     server.use(async (socket: AuthenticatedSocket, next) => {
@@ -23,6 +25,7 @@ export class WebsocketAdapter extends IoAdapter {
       if (authHeader === null) {
         console.log('Client has no access token');
         socket.disconnect()
+        this.logger.log(socket.id, 'Disconnect');
         return next(new Error('Not Authenticated'))
       }
       try {

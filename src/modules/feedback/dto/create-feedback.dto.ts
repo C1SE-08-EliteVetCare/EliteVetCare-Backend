@@ -1,7 +1,15 @@
-import { IsNotEmpty, Max, Min } from "class-validator";
+import { IsNotEmpty, IsOptional, Max, Min } from "class-validator";
 import { Type } from "class-transformer";
 
 export class CreateFeedbackDto {
+  @Type(() => Number)
+  @IsNotEmpty()
+  type: number
+
+  @Type(() => Number)
+  @IsOptional()
+  clinicId: number
+
   @IsNotEmpty()
   subject: string
 

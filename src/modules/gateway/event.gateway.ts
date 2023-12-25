@@ -103,6 +103,6 @@ export class EventGateway
     console.log('User is typing');
     const id = parseInt(conversationId)
     const conversation = await this.conversationService.findOne(id)
-  console.log(conversation);
+    console.log(conversation);
   }
 }

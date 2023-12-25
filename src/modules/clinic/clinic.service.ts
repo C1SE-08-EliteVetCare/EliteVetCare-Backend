@@ -14,11 +14,29 @@ export class ClinicService {
     return "This action adds a new clinic";
   }
 
-  findAll() {
+  async findAll() {
     try {
-      return this.clinicRepository.find()
+      const clinicsWithAverageRating = await this.clinicRepository
+        .createQueryBuilder('clinic')
+        .leftJoin('clinic.feedbacks', 'feedback')
+        .addSelect(['ROUND(AVG(COALESCE(feedback.rating, 0)), 1) AS averageRating'])
+        .groupBy('clinic.id')
+        .orderBy('averageRating', 'DESC')
+        .getRawMany()
+
+      return clinicsWithAverageRating.map(item => ({
+        id: item.clinic_id,
+        name: item.clinic_name,
+        city: item.clinic_city,
+        district: item.clinic_district,
+        ward: item.clinic_ward,
+        streetAddress: item.clinic_street_address,
+        logo: item.clinic_logo,
+        averageRating: item.averagerating == 0.0 ? 0 : item.averagerating,
+      }));
+
     } catch (error) {
-      throw new BadRequestException("Has error when fill all clinic");
+      throw new BadRequestException("Has error when find all clinic");
     }
   }
 

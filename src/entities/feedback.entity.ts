@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User } from './user.entity';
+import { Clinic } from "./clinic.entity";
 
 @Entity()
 export class Feedback {
@@ -16,7 +17,13 @@ export class Feedback {
   @Column({ name: 'user_id' })
   userId: number;
 
-  @Column('varchar', { length: 100 })
+  @Column()
+  type: number;
+
+  @Column({name: 'clinic_id', nullable: true})
+  clinicId: number;
+
+  @Column('varchar', { length: 150 })
   subject: string;
 
   @Column('text')
@@ -31,4 +38,8 @@ export class Feedback {
   @ManyToOne(() => User, (user) => user.feedbacks)
   @JoinColumn({ name: 'user_id' })
   user: User;
+
+  @ManyToOne(() => Clinic, (clinic) => clinic.feedbacks)
+  @JoinColumn({ name: 'clinic_id' })
+  clinic: Clinic;
 }

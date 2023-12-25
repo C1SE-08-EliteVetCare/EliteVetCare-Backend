@@ -2,6 +2,7 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from './user.entity';
 import { Appointment } from './appointment.entity';
 import { PetTreatment } from "./petTreatment.entity";
+import { Feedback } from "./feedback.entity";
 
 @Entity()
 export class Clinic {
@@ -34,4 +35,7 @@ export class Clinic {
 
   @OneToMany(() => PetTreatment, (petTreatment) => petTreatment.clinic)
   petTreatments: PetTreatment[];
+
+  @OneToMany(() => Feedback, (feedback) => feedback.clinic)
+  feedbacks: Feedback[];
 }

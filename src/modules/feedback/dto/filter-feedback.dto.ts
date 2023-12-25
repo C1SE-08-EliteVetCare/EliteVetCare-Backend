@@ -4,6 +4,10 @@ import { Type } from "class-transformer";
 export class FilterFeedbackDto {
   @IsOptional()
   @Type(() => Number)
+  type: number;
+
+  @IsOptional()
+  @Type(() => Number)
   page: number;
 
   @IsOptional()

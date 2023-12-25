@@ -12,7 +12,8 @@ import * as argon from 'argon2';
 import { CloudinaryService } from '../../config/cloudinary/cloudinary.service';
 import { FilterUserDto } from './dto/filter-user.dto';
 import { ClinicService } from '../clinic/clinic.service';
-import { instanceToPlain } from 'class-transformer';
+import { ContactUserDto } from "./dto/contact-user.dto";
+import { MailService } from "../../config/mail/mail.service";
 
 @Injectable()
 export class UserService {
@@ -22,6 +23,7 @@ export class UserService {
     private readonly cloudinaryService: CloudinaryService,
     @Inject(ClinicService)
     private readonly clinicService: ClinicService,
+    private mailService: MailService,
   ) {}
 
   getCurrentUser(user: User) {
@@ -297,5 +299,19 @@ export class UserService {
       .orderBy('RANDOM()')
       .limit(2)
       .getMany()
+  }
+
+  async sendContact(contactUserDto: ContactUserDto) {
+    const {fullName, email, phone, content} = contactUserDto
+    const emails = await this.userRepository.find({
+      where: { roleId: 1 },
+      select: ['email'],
+    })
+    const formatEmails = emails.map(item => item.email).toString()
+    await this.mailService.sendEmailContact(email, fullName, phone, content, formatEmails)
+
+    return {
+      message: 'Send successfully',
+    };
   }
 }

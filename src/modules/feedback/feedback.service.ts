@@ -33,6 +33,7 @@ export class FeedbackService {
   }
 
   async findAll(query: FilterFeedbackDto) {
+    const type = query.type || undefined
     const limit = query.limit || 10;
     const page = query.page || 1;
     const skip = (page - 1) * limit;
@@ -41,19 +42,22 @@ export class FeedbackService {
     const [res, total] = await this.feedbackRepository.findAndCount({
       relations: {
         user: true,
+        clinic: true
       },
       select: {
         id: true,
+        type: true,
         subject: true,
         content: true,
         rating: true,
         createdAt: true,
-        user: { id: true, email: true, fullName: true, phone: true, avatar: true },
+        user: { id: true, fullName: true, avatar: true },
       },
       where: {
         subject: query.search && ILike(`%${query.search}%`),
         user: { fullName: query.search && ILike(`%${query.search}`) },
         rating: query.rating && Equal(query.rating),
+        type
       },
       order: { createdAt: 'DESC' },
       take: limit,
@@ -73,6 +77,7 @@ export class FeedbackService {
   }
 
   async findAllCurrent(userId: number, query: FilterFeedbackDto) {
+    const type = query.type || undefined
     const limit = query.limit || 10;
     const page = query.page || 1;
     const skip = (page - 1) * limit;
@@ -80,6 +85,7 @@ export class FeedbackService {
     const [res, total] = await this.feedbackRepository.findAndCount({
       select: {
         id: true,
+        type: true,
         subject: true,
         content: true,
         rating: true,
@@ -89,6 +95,7 @@ export class FeedbackService {
         userId,
         rating: query.rating && Equal(query.rating),
         subject: query.search && ILike(`%${query.search}%`),
+        type
       },
       order: { createdAt: 'DESC' },
       take: limit,

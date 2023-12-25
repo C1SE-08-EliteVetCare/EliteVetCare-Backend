@@ -22,6 +22,8 @@ import { GetUser } from './decorator/user.decorator';
 import { User } from '../../entities';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilterUserDto } from "./dto/filter-user.dto";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { ContactUserDto } from "./dto/contact-user.dto";
 
 @Controller('user')
 export class UserController {
@@ -94,6 +96,12 @@ export class UserController {
     file: Express.Multer.File,
   ) {
     return this.userService.uploadAvatar(id, file);
+  }
+
+  @Post('send-contact')
+  @HttpCode(HttpStatus.OK)
+  sendContact(@Body() body: ContactUserDto) {
+    return this.userService.sendContact(body)
   }
 
   @UseGuards(AuthGuard('jwt'))
