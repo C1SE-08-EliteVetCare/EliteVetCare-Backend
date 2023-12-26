@@ -255,6 +255,17 @@ export class UserService {
     return user;
   }
 
+  async findAllVetInClinic(clinicId: number) {
+     return await this.userRepository.find({
+      where: { roleId: 3, clinicId },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+      },
+    });
+  }
+
   async recommendVet(userId: number) {
     const suggestedDoctors = [];
 

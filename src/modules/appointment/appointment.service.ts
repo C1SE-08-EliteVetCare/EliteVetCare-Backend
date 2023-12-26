@@ -146,10 +146,24 @@ export class AppointmentService {
 
     if (appointUpdated.affected <= 0) {
       throw new NotFoundException('Id appointment not found');
+    } else {
+      const appointment = await this.appointRepository.createQueryBuilder('a')
+        .where('a.id=:id', {id})
+        .leftJoin('a.clinic', 'clinic')
+        .leftJoin('a.vetAppointment', 'vetAppointment')
+        .leftJoin('vetAppointment.user', 'vet')
+        .addSelect([
+          'a.id', 'a.ownerId', 'a.appointmentDate', 'a.appointmentTime',
+          'a.servicePackage', 'a.status', 'a.createdAt', 'a.updatedAt', 'clinic.id',
+          'clinic.name', 'clinic.logo', 'vetAppointment.id', 'vetAppointment.dateAccepted',
+          'vet.id', 'vet.email', 'vet.fullName'
+        ])
+        .getOne()
+      return {
+        message: 'Update status successfully',
+        appointment: appointment
+      };
     }
-    return {
-      message: 'Update successfully',
-    };
   }
 }
 

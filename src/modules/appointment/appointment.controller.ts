@@ -17,18 +17,24 @@ import { GetUser } from '../user/decorator/user.decorator';
 import { Clinic, User } from '../../entities';
 import { FilterAppointmentDto } from './dto/filter-appointment.dto';
 import { RoleGuard } from '../auth/guard/role.guard';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Controller('appointment')
 export class AppointmentController {
-  constructor(private readonly appointmentService: AppointmentService) {}
+  constructor(
+    private readonly appointmentService: AppointmentService,
+    private eventEmitter: EventEmitter2
+  ) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Post('create')
-  create(
-    @GetUser('id') ownerId: number,
+  async create(
+    @GetUser() user: User,
     @Body() createAppointmentDto: CreateAppointmentDto,
   ) {
-    return this.appointmentService.create(ownerId, createAppointmentDto);
+    const appointment = await this.appointmentService.create(user.id, createAppointmentDto);
+    this.eventEmitter.emit('appointment.create', {user, appointment})
+    return appointment;
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -61,11 +67,13 @@ export class AppointmentController {
   @UseGuards(new RoleGuard(['Vet']))
   @UseGuards(AuthGuard('jwt'))
   @Patch('update-status/:id')
-  updateStatus(
+  async updateStatus(
     @Param('id') id: string,
     @GetUser('id') vetId: number,
     @Body('action') action: string,
   ) {
-    return this.appointmentService.updateStatus(+id, vetId, +action);
+    const res = await this.appointmentService.updateStatus(+id, vetId, +action);
+    this.eventEmitter.emit('appointment.updateStatus', res)
+    return res;
   }
 }

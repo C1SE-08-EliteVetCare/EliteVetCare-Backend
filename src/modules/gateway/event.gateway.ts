@@ -17,7 +17,7 @@ import { OnEvent } from "@nestjs/event-emitter";
 import { GatewaySessionManager } from "./gateway.session";
 import { AuthenticatedSocket } from "./interface/AuthenticatedSocket.interface";
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway({ cors: true, pingInterval: 10000, pingTimeout: 15000 })
 export class EventGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -26,6 +26,9 @@ export class EventGateway
   private logger: Logger = new Logger('MessageGateway');
 
   constructor(
+    @Inject(UserService)
+    private readonly userService: UserService,
+    @Inject(ConversationService)
     private readonly conversationService: ConversationService,
     @Inject(GatewaySessionManager)
     private readonly sessions: GatewaySessionManager
@@ -46,13 +49,6 @@ export class EventGateway
     }
   }
 
-  @SubscribeMessage('onClientConnect')
-  onClientConnect(@MessageBody() data: any, @ConnectedSocket() client: AuthenticatedSocket) {
-    console.log('onClientConnect');
-    console.log(data);
-    console.log(client?.user);
-  }
-
   async handleDisconnect(socket: AuthenticatedSocket) {
     this.sessions.removeUserSocket(socket?.user?.id)
     socket.disconnect();
@@ -62,6 +58,50 @@ export class EventGateway
   @SubscribeMessage("createMessage")
   async handleCreateMessage(@MessageBody() data: any) {
     console.log('Create message', data);
+  }
+
+  @SubscribeMessage('onConversationJoin')
+  onConversationJoin(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: AuthenticatedSocket,
+  ) {
+    console.log('onConversationJoin');
+    client.join(data.conversationId);
+    console.log(client.rooms);
+    client.to(data.conversationId).emit('userJoin');
+  }
+
+  @SubscribeMessage('onConversationLeave')
+  onConversationLeave(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: AuthenticatedSocket,
+  ) {
+    console.log('onConversationLeave');
+    client.leave(data.conversationId);
+    console.log(client.rooms);
+    client.to(data.conversationId).emit('userLeave');
+  }
+
+  @SubscribeMessage('onTypingStart')
+  onTypingStart(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: AuthenticatedSocket,
+  ) {
+    console.log('onTypingStart');
+    console.log(data.conversationId);
+    console.log(client.rooms);
+    client.to(data.conversationId).emit('onTypingStart');
+  }
+
+  @SubscribeMessage('onTypingStop')
+  onTypingStop(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: AuthenticatedSocket,
+  ) {
+    console.log('onTypingStop');
+    console.log(data.conversationId);
+    console.log(client.rooms);
+    client.to(data.conversationId).emit('onTypingStop');
   }
 
   @OnEvent('message.create')
@@ -75,15 +115,11 @@ export class EventGateway
       creator, recipient
     } = payload.conversation
 
-    console.log(payload);
-
     const authorSocket = this.sessions.getUserSocket(author.id);
     const recipientSocket =
       author.id === creator.id
         ? this.sessions.getUserSocket(recipient.id) // author is creator in conversation
         : this.sessions.getUserSocket(creator.id); // author is recipient in conversation
-
-    // console.log(`Recipient Socket: ${JSON.stringify(recipientSocket?.user)}`);
 
     authorSocket && authorSocket.emit('onMessage', payload);
     recipientSocket && recipientSocket.emit('onMessage', payload);
@@ -92,17 +128,35 @@ export class EventGateway
   @OnEvent('conversation.create')
   handleConversationCreateEvent(payload: any) {
     console.log('Inside conversation.create');
-    console.log(payload.recipient);
     const recipientSocket = this.sessions.getUserSocket(payload.recipient.id);
     recipientSocket && recipientSocket.emit('onConversation', payload);
   }
 
-  @SubscribeMessage("onUserTyping")
-  async handleTypingMessage(@MessageBody() data: any) {
-    const { conversationId } = data
-    console.log('User is typing');
-    const id = parseInt(conversationId)
-    const conversation = await this.conversationService.findOne(id)
-    console.log(conversation);
+  // Notification
+  @OnEvent('appointment.create')
+  async handleAppointmentCreateEvent(payload: any) {
+    const { user, appointment } = payload
+    console.log('Inside appointment.create');
+    const vets = await this.userService.findAllVetInClinic(appointment?.clinicId)
+
+    for (let vet of vets) {
+      const recipientSocket = this.sessions.getUserSocket(vet?.id);
+      recipientSocket && recipientSocket.emit('onAppointmentCreate', {
+        user: {
+          id: user?.id,
+          email: user?.email,
+          fullName: user?.fullName,
+          avatar: user?.avatar
+        },
+        appointmentDetail: appointment
+      });
+    }
+  }
+
+  @OnEvent('appointment.updateStatus')
+  async handleAppointmentStatusEvent(payload: any) {
+    console.log('Inside appointment.status');
+    const recipientSocket = this.sessions.getUserSocket(payload?.appointment?.ownerId);
+    recipientSocket && recipientSocket.emit('onAppointmentStatus', payload);
   }
 }
