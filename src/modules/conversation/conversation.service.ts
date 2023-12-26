@@ -75,6 +75,7 @@ export class ConversationService {
       lastMessageSent: {
         id: message.id,
         content: message.content,
+        imgUrl: message.imgUrl,
         createdAt: message.createdAt
       }
     };
