@@ -59,7 +59,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
       await this.userRepository.save(newUser);
     } else {
-      res.tokenGoogle = tokenGoogle
+      res.tokenGoogle = user.tokenGoogle
       await this.userRepository.save(res)
     }
 

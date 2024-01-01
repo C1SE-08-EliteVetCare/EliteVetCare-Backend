@@ -272,44 +272,59 @@ export class UserService {
     const [allClinics, user] = await Promise.all([
       this.clinicService.findAll(),
       this.userRepository.findOne({
-      where: {id: userId},
-      relations: {appointments: true}
+        where: {id: userId},
+        relations: {appointments: true},
+        select: {appointments: true}
       })
     ])
 
     // Tạo danh sách phòng khám mà người dùng đã từng đặt cuộc hẹn
-    const clinicIdsWithAppointments = user.appointments.map(appointment => appointment.clinicId);
+    const clinicIdsWithAppointments = [...new Set(user.appointments.map(appointment => appointment.clinicId))];
 
     // Tạo danh sách phòng khám mà người dùng chưa từng đặt cuộc hẹn
     const clinicIdsWithoutAppointments = allClinics
       .map(clinic => clinic.id)
       .filter(clinicId => !clinicIdsWithAppointments.includes(clinicId));
+    console.log(clinicIdsWithoutAppointments);
 
     for (const clinicId of clinicIdsWithAppointments) {
       const vet = await this.getVetsInClinic(clinicId)
-      vet !== null && suggestedDoctors.push(...vet);
+      vet !== null && suggestedDoctors.push(vet);
     }
 
-    for (const clinicId of clinicIdsWithAppointments.concat(clinicIdsWithoutAppointments)) {
+    for (const clinicId of clinicIdsWithoutAppointments) {
       const vet = await this.getVetsInClinic(clinicId)
-      vet !== null && suggestedDoctors.push(...vet);
+      vet !== null && suggestedDoctors.push(vet);
     }
 
-    // Lọc bác sĩ trùng lặp (nếu có)
-    return suggestedDoctors.filter((doctor, index, self) => {
-      return index === self.findIndex(d => d.id === doctor.id);
-    });
+    return suggestedDoctors;
   }
 
-  getVetsInClinic(clinicId: number) {
+  async getVetsInClinic(clinicId: number) {
     return this.userRepository.createQueryBuilder('user')
       .where('user.roleId = :roleId', { roleId: 3 })
       .andWhere('user.clinicId = :clinicId', { clinicId })
       .leftJoin('user.clinic', 'clinic')
-      .select(['user.id', 'user.fullName', 'user.avatar', 'user.email', 'clinic.id', 'clinic.name', 'clinic.city', 'clinic.district', 'clinic.ward', 'clinic.streetAddress', 'clinic.logo'])
+      .leftJoin('clinic.feedbacks', 'feedback')
+      .addSelect(['ROUND(AVG(COALESCE(feedback.rating, 0)), 1) AS averageRating'])
+      .addSelect(['user.id', 'user.fullName', 'user.avatar', 'user.email', 'clinic.id', 'clinic.name', 'clinic.city', 'clinic.district', 'clinic.ward', 'clinic.streetAddress', 'clinic.logo'])
+      .groupBy('user.id, clinic.id')
       .orderBy('RANDOM()')
-      .limit(2)
-      .getMany()
+      .getRawOne().then(result => ({
+        id: result.user_id,
+        fullName: result.user_full_name,
+        avatar: result.user_avatar,
+        email: result.user_email,
+        clinic: {
+          id: result.clinic_id,
+          name: result.clinic_name,
+          city: result.clinic_city,
+          district: result.clinic_district,
+          ward: result.clinic_ward,
+          streetAddress: result.clinic_street_address,
+          averageRating: result.averagerating == 0.0 ? 0 : result.averagerating,
+        },
+      }));
   }
 
   async sendContact(contactUserDto: ContactUserDto) {

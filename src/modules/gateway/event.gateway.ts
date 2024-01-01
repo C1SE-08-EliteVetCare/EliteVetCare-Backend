@@ -157,6 +157,9 @@ export class EventGateway
   async handleAppointmentStatusEvent(payload: any) {
     console.log('Inside appointment.status');
     const recipientSocket = this.sessions.getUserSocket(payload?.appointment?.ownerId);
-    recipientSocket && recipientSocket.emit('onAppointmentStatus', payload);
+    recipientSocket && recipientSocket.emit('onAppointmentStatus', {
+      message: "Update status successfully",
+      appointmentDetail: payload.appointment,
+    });
   }
 }
