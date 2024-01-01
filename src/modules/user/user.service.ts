@@ -285,7 +285,6 @@ export class UserService {
     const clinicIdsWithoutAppointments = allClinics
       .map(clinic => clinic.id)
       .filter(clinicId => !clinicIdsWithAppointments.includes(clinicId));
-    console.log(clinicIdsWithoutAppointments);
 
     for (const clinicId of clinicIdsWithAppointments) {
       const vet = await this.getVetsInClinic(clinicId)
