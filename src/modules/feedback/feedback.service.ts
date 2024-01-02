@@ -51,7 +51,7 @@ export class FeedbackService {
         content: true,
         rating: true,
         createdAt: true,
-        user: { id: true, fullName: true, avatar: true },
+        user: { id: true, email:true, fullName: true,  avatar: true },
       },
       where: {
         subject: query.search && ILike(`%${query.search}%`),
