@@ -120,4 +120,11 @@ export class UserController {
   updateRole(@Body() body: {userId: string, roleId: string}) {
     return this.userService.updateRole(+body.userId, +body.roleId)
   }
+
+  @UseGuards(new RoleGuard(['Admin']))
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('/update-clinic')
+  updateClinic(@Body() body: {userId: number, clinicId: string}) {
+    return this.userService.updateClinic(+body.userId, +body.clinicId)
+  }
 }

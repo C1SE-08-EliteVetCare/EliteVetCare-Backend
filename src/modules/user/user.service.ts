@@ -339,4 +339,18 @@ export class UserService {
       message: 'Send successfully',
     };
   }
+
+  async updateClinic(userId: number, clinicId: number) {
+    const user = await this.userRepository.findOne({
+      where: {id: userId}
+    })
+    if (!user) {
+      throw new NotFoundException("User is not found")
+    }
+    user.clinicId = clinicId
+    await this.userRepository.save(user)
+    return {
+      message: "Update clinic successfully"
+    }
+  }
 }
