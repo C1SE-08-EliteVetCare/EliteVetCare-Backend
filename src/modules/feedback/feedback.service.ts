@@ -7,7 +7,7 @@ import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Feedback } from '../../entities';
-import { Equal, ILike, Repository } from 'typeorm';
+import { Brackets, Equal, ILike, Repository } from "typeorm";
 import { FilterFeedbackDto } from './dto/filter-feedback.dto';
 
 @Injectable()
@@ -37,7 +37,8 @@ export class FeedbackService {
     const limit = query.limit || 10;
     const page = query.page || 1;
     const skip = (page - 1) * limit;
-    // const keyword = query.search || undefined;
+    const keyword = query.search || undefined;
+    console.log(keyword);
     // const rating = query.rating || undefined;
     const [res, total] = await this.feedbackRepository.findAndCount({
       relations: {
@@ -53,12 +54,11 @@ export class FeedbackService {
         createdAt: true,
         user: { id: true, email:true, fullName: true,  avatar: true },
       },
-      where: {
-        subject: query.search && ILike(`%${query.search}%`),
-        user: { fullName: query.search && ILike(`%${query.search}`) },
-        rating: query.rating && Equal(query.rating),
-        type
-      },
+      where: [
+        {subject: query.search && ILike(`%${keyword}%`), rating: query.rating && Equal(query.rating), type},
+        {user: { fullName: query.search && ILike(`%${keyword}`) }, rating: query.rating && Equal(query.rating), type},
+      ],
+
       order: { createdAt: 'DESC' },
       take: limit,
       skip: skip,
