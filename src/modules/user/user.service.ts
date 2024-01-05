@@ -202,6 +202,9 @@ export class UserService {
       where: { id: userId },
     });
     if (!user) throw new NotFoundException('User is not found');
+    if (user.roleId === 3) {
+      user.clinicId = null
+    }
     user.roleId = newRoleId;
     await this.userRepository.save(user);
     return {
