@@ -92,7 +92,7 @@ export class AppointmentService {
     const status = query.status || undefined;
 
     const [res, total] = await this.appointRepository.findAndCount({
-      order: { appointmentDate: 'ASC' },
+      order: { appointmentDate: 'DESC' },
       relations: {
         user: true,
         vetAppointment: {user: true}
